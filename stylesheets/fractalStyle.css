@@ -1,0 +1,20 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+.fpsContainer {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 3;
+    color: gray;
+    background-color: rgba(0,0,0,0.5);
+    border-radius: 10px;
+    padding: 10px;
+    z-index: 2;
+}

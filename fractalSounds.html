@@ -1,0 +1,32 @@
+
+<html>
+  <head>
+    <title>Fractal sounds</title>
+    <link rel="stylesheet" href="/stylesheets/fractalStyle.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+              integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
+              crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div class="fpsContainer">
+      <div class="fps">fps: <span id="fps">32</span></div>
+      <div id="topUI">
+      <div style="color: white;">Fractal type</div>
+      <div class="clickable" id="setSetting0" style="color: red;">Mandelbrot Set</div>
+      <div class="clickable" id="setSetting1">Burning Ship</div>
+      <div class="clickable" id="setSetting2">Feather Fractal</div>
+      <div class="clickable" id="setSetting3">SFX Fractal</div>
+      <div class="clickable" id="setSetting4">Henon Map</div>
+      <div class="clickable" id="setSetting5">Duffing Map</div>
+      <div class="clickable" id="setSetting6">Ikeda Map</div>
+      <div class="clickable" id="setSetting7">Chirikov Map</div>
+      </div>
+    </div>
+    <div style="width: 100%; height: 100%;">
+      <canvas id="glcanvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+      <canvas id="canvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+    </div>
+    <script src="/javascripts/fractalSoundsUtils.js"></script>
+    <script src="/javascripts/fractalSounds.js"></script>
+  </body>
+</html>
