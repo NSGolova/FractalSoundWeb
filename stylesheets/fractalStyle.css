@@ -3,18 +3,27 @@ body {
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
-a {
-  color: #00B7FF;
-}
-
 .fpsContainer {
     position: absolute;
     top: 10px;
     left: 10px;
     z-index: 3;
     color: gray;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(255,255,255,0.9);
     border-radius: 10px;
     padding: 10px;
     z-index: 2;
 }
+
+.linkContainer {
+  padding-top: 20px;
+}
+
+.menuTitle {
+  padding-top: 15px;
+  padding-bottom: 5px;
+  font: 20px "Lucida Grande", Helvetica, Arial, sans-serif;
+  color: black;
+}
+
+.clickable {cursor: pointer;}

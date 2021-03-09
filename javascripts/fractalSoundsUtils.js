@@ -12,7 +12,7 @@ function feather(x, y, cx, cy) {
   var c = new Complex(cx, cy);
   var one = new Complex(1.0, 0.0);
 
-  z = z.multiply(z).multiply(z).divide(one.add(z2).add(c));
+  z = z.multiply(z).multiply(z).divide(one.add(z2)).add(c);
   return {x: z.real, y: z.imag};
 }
 function sfx(x, y, cx, cy) {
@@ -102,10 +102,8 @@ Complex.prototype.add = function(operand) {
 		real = Number(operand);
 		imag = 0;
 	}
-	this.real += real;
-	this.imag += imag;
 
-	return this;
+	return new Complex (this.real + real, this.imag + imag);
 };
 
 Complex.prototype.subtract = function(operand) {
@@ -118,13 +116,11 @@ Complex.prototype.subtract = function(operand) {
 		real = Number(operand);
 		imag = 0;
 	}
-	this.real -= real;
-	this.imag -= imag;
 
-	return this;
+	return new Complex (this.real - real, this.imag - imag);
 };
 Complex.prototype.multiply = function(operand) {
-	var real, imag, tmp;
+	var real, imag;
 
 	if (operand instanceof Complex) {
 		real = operand.real;
@@ -134,15 +130,11 @@ Complex.prototype.multiply = function(operand) {
 		imag = 0;
 	}
 
-	tmp = this.real * real - this.imag * imag;
-	this.imag = this.real * imag + this.imag * real;
-	this.real = tmp;
-
-	return this;
+	return new Complex (this.real * real - this.imag * imag, this.real * imag + this.imag * real);
 };
 
 Complex.prototype.divide = function(operand) {
-	var real, imag, denom, tmp;
+	var real, imag, denom;
 
 	if (operand instanceof Complex) {
 		real = operand.real;
@@ -153,199 +145,168 @@ Complex.prototype.divide = function(operand) {
 	}
 
 	denom = real * real + imag * imag;
-	tmp = (this.real * real + this.imag * imag) / denom;
-	this.imag = (this.imag * real - this.real * imag) / denom;
-	this.real = tmp;
 
-	return this;
+	return new Complex ((this.real * real + this.imag * imag) / denom, (this.imag * real - this.real * imag) / denom);
 };
 
-const AUDIO_BUFF_SIZE = 40960;
-function getScriptPath(foo){ return window.URL.createObjectURL(new Blob([foo.toString().match(/^\s*function\s*\(\s*\)\s*\{(([\s\S](?!\}$))*[\s\S])/)[1]],{type:'text/javascript'})); }
+const AUDIO_BUFF_SIZE = 4000;
+var sampleRate = 40000;
+var maxFreq = 4000;
 
 class Synthesizer {
   constructor() {
-    this.audio_reset = true;
     this.audio_pause = false;
-    this.volume = 8000.0;
-    this.play_x = 0.0;
-    this.play_y = 0.0;
-    this.play_cx = 0.0;
-    this.play_cy = 0.0;
-    this.play_nx = 0.0;
-    this.play_ny = 0.0;
-    this.play_px = 0.0;
-    this.play_py = 0.0;
+    this.volume = 1.0;
     this.jx = 1e8;
     this.jy = 1e8;
+    this.playing = false;
 
     this.fractalType = 0;
     this.context = new (window.AudioContext || window.webkitAudioContext)();
-    this.source = this.context.createBufferSource();
+// var AudioFeeder = require('audio-feeder');
+    var feeder = new AudioFeeder();
+    feeder.init(2, sampleRate);
+    this.feeder = feeder;
+    this.worker = new Worker("../javascripts/fractalSoundsWorker.js");
+
+    // var context = this.context;
+    var worker = this.worker;
+    var synth = this;
+    // this.myArrayBuffer = context.createBuffer(2, AUDIO_BUFF_SIZE, sampleRate);
+    worker.addEventListener('message', function(e) {
+      if (e.data[1]) {
+        synth.stop();
+      } else {
+        synth.m_samples = e.data[0];
+      }
+
+
+      // var channels = 1,
+      // rate = 48000,
+      // sampleCounter = 0,
+      // initialized = false, freq = 261, // middle C
+      //   shellFreq = 0.5, // fade in/out over 2 seconds
+      //   chunkSamples = Math.round(1 * rate), // buffer 1s at a time
+      //   samples = Math.ceil(chunkSamples / freq) * freq,
+      //   buffer2 = new Float32Array(samples),
+      //   packet = [buffer2, buffer2];
+      //
+      // for (var i = 0; i < samples; i++) {
+      //   buffer2[i] = Math.sin((sampleCounter / rate) * freq * 2 * Math.PI)
+      //     * Math.sin((sampleCounter / rate) * shellFreq * 2 * Math.PI);
+      //   sampleCounter++;
+      // }
+      //
+      // feeder.bufferData(packet);
+
+
+      // feeder.start();
+    }, false);
+
   }
-  // Getter
+
   setPoint(x, y) {
-    this.play_nx = x;
-    this.play_ny = y;
-    this.audio_reset = true;
+
     this.audio_pause = false;
-
-    var context = this.context;
-    var source = this.source;
-
-    source.stop();
-    var myArrayBuffer = context.createBuffer(2, AUDIO_BUFF_SIZE, context.sampleRate);
-    this.audioData(myArrayBuffer);
-
-    this.source = this.context.createBufferSource();
-    var source = this.source;
-    source.buffer = myArrayBuffer;
-    source.connect(context.destination);
-    source.start();
+    // this.feeder.stop();
+    // this.feeder.flush();
+    // this.feeder.start();
+    this.worker.postMessage(["setPoint", x, y, this.fractalType]);
+    // this.updateBuffers();
   }
-
-  // set fractal(number) {
-  //   this.fractal = all_fractals[number];
-  // }
 
   play() {
-    var context = this.context;
-    var source = this.source;
-    source.connect(context.destination);
-    source.start();
+    // var context = this.context;
+    // var source = this.source;
+    var synth = this;
 
+    // source = context.createBufferSource();
+    // source.addEventListener('ended', (event) => {
+    //
+    // });
+    // var nIntervId = setInterval(function() { synth.updateBuffers(); }, (AUDIO_BUFF_SIZE / sampleRate) * 950);
+    var feeder = this.feeder;
+    feeder.waitUntilReady(function() {
+      // feeder.bufferData([
+      //   new Float32Array(AUDIO_BUFF_SIZE),
+      //   new Float32Array(AUDIO_BUFF_SIZE)
+      // ]);
+
+      // Start playback...
+      // feeder.start();
+      feeder.volume = 0.3;
+      feeder.start();
+
+      // document.querySelector('button.stop').addEventListener('click', function() {
+        // You can pause output at any time:
+
+        // to release resources, call feeder.close() instead.
+      // });
+
+      // Callback when buffered data runs below feeder.bufferThreshold seconds:
+      feeder.onbufferlow = function() {
+        // console.log('flow');
+        synth.worker.postMessage(["calc"]);
+        synth.updateBuffers();
+        // while (feeder.durationBuffered < feeder.bufferThreshold) {
+        //   feeder.bufferData([
+        //     new Float32Array(AUDIO_BUFF_SIZE),
+        //     new Float32Array(AUDIO_BUFF_SIZE)
+        //   ]);
+        // }
+      };
+
+      feeder.onstarved = function() {
+    console.log('starving');
+    synth.worker.postMessage(["calc"]);
+    synth.updateBuffers();
+    // bufferSineWave();
+  };
+    });
+
+    // source.loop = true;
+    // source.buffer = this.myArrayBuffer;
+    // source.connect(context.destination);
+    // source.start();
+    this.audio_pause = true;
+  }
+
+  updateBuffers2() {
+    if (!this.audio_pause && this.m_samples) {
+      const buffer = this.m_samples;
+      const volume = this.volume;
+      for (var i = 0; i < AUDIO_BUFF_SIZE; i++) {
+        this.myArrayBuffer.getChannelData(0)[i] = buffer[i*2] * volume;
+        this.myArrayBuffer.getChannelData(1)[i] = buffer[i*2+1] * volume;
+      }
+    } else {
+      for (var i = 0; i < AUDIO_BUFF_SIZE; i++) {
+        this.myArrayBuffer.getChannelData(0)[i] = 0;
+        this.myArrayBuffer.getChannelData(1)[i] = 0;
+      }
+    }
+  }
+
+  updateBuffers() {
+    var lchannel = new Float32Array(AUDIO_BUFF_SIZE);
+    var rchannel = new Float32Array(AUDIO_BUFF_SIZE);
+
+    const buffer = this.m_samples;
+    if (buffer && !this.audio_pause) {
+    for (var i = 0; i < AUDIO_BUFF_SIZE; i++) {
+      lchannel[i] = buffer[i*2];
+      rchannel[i] = buffer[i*2+1];
+    }
+  }
+    this.feeder.bufferData([
+      lchannel,
+      rchannel
+    ]);
   }
 
   stop() {
-    this.source.stop();
-  }
-
-  // Method
-  audioData(buffer) {
-    if (this.audio_reset) {
-      this.m_audio_time = 0;
-      this.play_cx = (jx < 1e8 ? jx : this.play_nx);
-      this.play_cy = (jy < 1e8 ? jy : this.play_ny);
-      this.play_x = this.play_nx;
-      this.play_y = this.play_ny;
-      this.play_px = this.play_nx;
-      this.play_py = this.play_ny;
-      this.mean_x = this.play_nx;
-      this.mean_y = this.play_ny;
-      this.volume = 8000.0;
-      this.audio_reset = false;
-    }
-
-    var mean_x;
-    var mean_y;
-    var dx;
-    var dy;
-    var dpx;
-    var dpy;
-
-    var m_samples = new Array(AUDIO_BUFF_SIZE);
-    var m_audio_time = 0;
-    var audio_reset = this.audio_reset;
-    var audio_pause = this.audio_pause;
-    var volume = this.volume;
-    var play_x = this.play_x;
-    var play_y = this.play_y;
-    var play_cx = this.play_cx;
-    var play_cy = this.play_cy;
-    var play_nx = this.play_nx;
-    var play_ny = this.play_ny;
-    var play_px = this.play_px;
-    var play_py = this.play_py;
-    var jx = this.jx;
-    var jy = this.jy;
-    var normalized = true;
-
-    //Generate the tones
-    const steps = Math.trunc(48000 / 4000)
-    for (var i = 0; i < AUDIO_BUFF_SIZE; i+=1) {
-      const j = Math.trunc(m_audio_time % steps);
-      if (j == 0) {
-        play_px = play_x;
-        play_py = play_y;
-        const fr = all_fractals[this.fractalType](play_x, play_y, play_cx, play_cy);
-        play_x = fr.x;
-        play_y = fr.y;
-        if (play_x*play_x + play_y*play_y > 1000.0) {
-          this.audio_pause = true;
-          return;
-        }
-
-        if (normalized) {
-          dpx = play_px - play_cx;
-          dpy = play_py - play_cy;
-          dx = play_x - play_cx;
-          dy = play_y - play_cy;
-          if (dx != 0.0 || dy != 0.0) {
-            var dpmag = 1.0 / Math.sqrt(1e-12 + dpx*dpx + dpy*dpy);
-            var dmag = 1.0 / Math.sqrt(1e-12 + dx*dx + dy*dy);
-            dpx *= dpmag;
-            dpy *= dpmag;
-            dx *= dmag;
-            dy *= dmag;
-          }
-        } else {
-          //Point is relative to mean
-          dx = play_x - mean_x;
-          dy = play_y - mean_y;
-          dpx = play_px - mean_x;
-          dpy = play_py - mean_y;
-        }
-
-        //Update mean
-        mean_x = mean_x*0.99 + play_x*0.01;
-        mean_y = mean_y*0.99 + play_y*0.01;
-
-        //Don't let the volume go to infinity, clamp.
-        var m = dx*dx + dy*dy;
-        if (m > 2.0) {
-          dx *= 2.0 / m;
-          dy *= 2.0 / m;
-        }
-        m = dpx*dpx + dpy*dpy;
-        if (m > 2.0) {
-          dpx *= 2.0 / m;
-          dpy *= 2.0 / m;
-        }
-
-        //Lose volume over time unless in sustain mode
-        // if (!sustain) {
-        //   volume *= 0.9992;
-        // }
-      }
-
-      //Cosine interpolation
-      var t = j.toFixed(2) / steps.toFixed(2);
-      t = 0.5 - 0.5*Math.cos(t * 3.14159);
-      var wx = t*dx + (1.0 - t)*dpx;
-      var wy = t*dy + (1.0 - t)*dpy;
-
-      //Save the audio to the 2 channels
-      // console.log(wx);
-      buffer.getChannelData(0)[i] = Math.min(Math.max(wx, -1.0), 1.0);
-      buffer.getChannelData(1)[i] = Math.min(Math.max(wy, -1.0), 1.0);
-      m_audio_time += 1;
-    }
-
-    this.audio_reset = audio_reset;
-    this.audio_pause = audio_pause;
-    this.volume = volume;
-    this.play_x = play_x;
-    this.play_y = play_y;
-    this.play_cx = play_cx;
-    this.play_cy = play_cy;
-    this.play_nx = play_nx;
-    this.play_ny = play_ny;
-    this.play_px = play_px;
-    this.play_py = play_py;
-    this.m_samples = m_samples;
-    this.m_audio_time = m_audio_time;
-
-    //Return the sound clip
-    return !audio_reset;
+    // if (this.audio_pause) { return; }
+    this.audio_pause = true;
+    // this.feeder.stop();
   }
 }

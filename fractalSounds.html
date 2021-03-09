@@ -11,7 +11,7 @@
     <div class="fpsContainer">
       <div class="fps">fps: <span id="fps">32</span></div>
       <div id="topUI">
-      <div style="color: white;">Fractal type</div>
+      <div class="menuTitle">Fractal type</div>
       <div class="clickable" id="setSetting0" style="color: red;">Mandelbrot Set</div>
       <div class="clickable" id="setSetting1">Burning Ship</div>
       <div class="clickable" id="setSetting2">Feather Fractal</div>
@@ -20,13 +20,30 @@
       <div class="clickable" id="setSetting5">Duffing Map</div>
       <div class="clickable" id="setSetting6">Ikeda Map</div>
       <div class="clickable" id="setSetting7">Chirikov Map</div>
+      <div>
+        <label>Volume <input type="range" id="volume" min="1" max="100" value="30"></label>
+      </div>
+      <div class="linkContainer">
+        <a href="https://youtu.be/GiAj9WW1OfQ">
+          <img src="/images/youtube.png" width="32" height="32" title="Video explanation">
+        </a>
+        <a href="https://codeparade.itch.io/fractal-sound-explorer">
+          <img src="/images/windows.png" width="32" height="32" title="App for Windows">
+        </a>
+        <a href="https://github.com/radulov/FractalSoundWeb.git">
+          <img src="/images/github.png" width="32" height="32" title="Look at my guts">
+        </a>
+      </div>
       </div>
     </div>
     <div style="width: 100%; height: 100%;">
+      <canvas id="placeholder" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 0;width: 100%; height: 100%;"></canvas>
       <canvas id="glcanvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
-      <canvas id="canvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+      <canvas id="lineCanvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
     </div>
+    <script src="/javascripts/AudioFeeder.js"></script>
     <script src="/javascripts/fractalSoundsUtils.js"></script>
     <script src="/javascripts/fractalSounds.js"></script>
+    <script src="/javascripts/fractalSoundsWorker.js"></script>
   </body>
 </html>

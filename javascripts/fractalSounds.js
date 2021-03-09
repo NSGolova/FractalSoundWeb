@@ -14,7 +14,9 @@ var programInfo;
 
 function main() {
   const canvas = document.querySelector('#glcanvas');
-  const gl = canvas.getContext('webgl2');
+  const placeholder = document.querySelector('#placeholder');
+  const lineCanvas = document.querySelector('#lineCanvas');
+
   zoom = 100.;
   camera = [0.0, 0.0];
   cameraFp = [0, 0];
@@ -23,7 +25,13 @@ function main() {
   iterations = 1200;
   julia = [1e8, 1e8];
   type = 0;
-  resolution = [canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height];
+  resolution = [placeholder.getBoundingClientRect().width, placeholder.getBoundingClientRect().height];
+  canvas.width = resolution[0];
+  canvas.height = resolution[1];
+  lineCanvas.width = resolution[0];
+  lineCanvas.height = resolution[1];
+
+  const gl = canvas.getContext('webgl2');
 
   if (!gl) {
     alert('Unable to initialize WebGL. Your browser or machine may not support it.');
@@ -401,7 +409,7 @@ function setupEventHandlers() {
     applyZoom(programInfo, delta);
   });
 
-  window.addEventListener("mousedown", e => {
+  window.addEventListener("mousedown", event => {
     var rightclick;
     var e = window.event;
     prevDrag = [e.offsetX, e.offsetY];
@@ -409,13 +417,18 @@ function setupEventHandlers() {
       if (e.button == 2) {
         rightclick = true;
         programInfo.synth.stop()
+        event.preventDefault();
+         return false;
       }
       if (e.button == 0) {
         leftPressed = true;
         if (!resumed) {
-        programInfo.synth.context.resume().then(() => {
-          resumed = true;
-        });
+          // programInfo.synth.feeder.tempo = 1.0;
+          // programInfo.synth.feeder.audioContext.resume();
+          programInfo.synth.feeder._backend._context.resume();
+        // programInfo.synth.context.resume().then(() => {
+        //   resumed = true;
+        // });
       }
         var coord = ScreenToPt(e.offsetX, e.offsetY);
 
@@ -423,20 +436,18 @@ function setupEventHandlers() {
         orbit_y = coord[1];
         drawOrbit(programInfo, coord[0], coord[1]);
         programInfo.synth.setPoint(coord[0], coord[1]);
-        // worker = new Worker("javascripts/fractalSoundsWorker.js");
-        // worker = new Worker(getScriptPath(
-        //
-        //   function(){
-        //   importScripts('/javascripts/fractalSoundsUtils.js');
-        //   self.addEventListener('message', function(e) {
-        //     const synth = new Synthesizer();
-        //     const coord = e.data;
-        //       synth.setPoint(coord[0], coord[1]);
-        //   }, false);
-        // }));
-        // worker.postMessage(coord);
       }
   });
+  if (document.addEventListener) {
+              document.addEventListener('contextmenu', function (e) {
+                  e.preventDefault();
+              }, false);
+          } else {
+              document.attachEvent('oncontextmenu', function () {
+                  window.event.returnValue = false;
+              });
+          }
+
 
   window.addEventListener('mousemove', e => {
   if (dragging === true) {
@@ -457,6 +468,11 @@ function setupEventHandlers() {
 window.addEventListener('mouseup', e => {
   dragging = false;
   leftPressed = false;
+});
+
+var tempo = document.querySelector('#volume');
+tempo.addEventListener('change', function() {
+  programInfo.synth.feeder.volume = this.value / 100;
 });
 
 setupButtons();
@@ -505,7 +521,7 @@ function PtToScreen(px, py) {
 
 function drawOrbit(programInfo, orbit_x, orbit_y) {
 
-  const c = document.querySelector('#canvas');
+  const c = document.querySelector('#lineCanvas');
   var ctx = c.getContext("2d");
   ctx.clearRect(0, 0, c.width, c.height);
   var x = orbit_x;
