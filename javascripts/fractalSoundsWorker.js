@@ -1,4 +1,3 @@
-var window = self;
 importScripts('/javascripts/fractalSoundsUtils.js');
 
 class Buffer {
@@ -16,7 +15,7 @@ class Buffer {
 
     this.fractalType = 0;
   }
-  // Getter
+
   setPoint(x, y) {
     this.play_nx = x;
     this.play_ny = y;
@@ -25,7 +24,6 @@ class Buffer {
     this.audio_pause = false;
   }
 
-  // Method
   audioData() {
     if (this.audio_reset) {
       this.m_audio_time = 0;
@@ -37,7 +35,7 @@ class Buffer {
       this.play_py = this.play_ny;
       this.mean_x = this.play_nx;
       this.mean_y = this.play_ny;
-      this.volume = 8000.0;
+      this.volume = 1.0;
       this.audio_reset = false;
     }
 
@@ -46,8 +44,10 @@ class Buffer {
     var dpx;
     var dpy;
 
+    // Empty container for two channels.
     var m_samples = new Array(AUDIO_BUFF_SIZE * 2);
-    var m_audio_time = 0;
+    // Cache all of the properties before big loop.
+    var m_audio_time = this.m_audio_time;
     var audio_reset = this.audio_reset;
     var audio_pause = this.audio_pause;
     var volume = this.volume;
@@ -63,10 +63,11 @@ class Buffer {
     var jy = this.jy;
     var mean_x = this.mean_x;
     var mean_y = this.mean_y;
-    var normalized = this.fractalType == 0;
+    const normalized = this.fractalType == 0;
+    const sustain = this.sustain;
 
     //Generate the tones
-    const steps = Math.trunc(sampleRate / maxFreq)
+    const steps = Math.trunc(sampleRate / this.maxFreq)
     for (var i = 0; i < AUDIO_BUFF_SIZE * 2; i+=2) {
       const j = Math.trunc(m_audio_time % steps);
       if (j == 0) {
@@ -118,9 +119,9 @@ class Buffer {
         }
 
         //Lose volume over time unless in sustain mode
-        // if (!sustain) {
-        //   volume *= 0.9992;
-        // }
+        if (!sustain) {
+          volume *= 0.9992;
+        }
       }
 
       //Cosine interpolation
@@ -130,9 +131,8 @@ class Buffer {
       var wy = t*dy + (1.0 - t)*dpy;
 
       //Save the audio to the 2 channels
-      // console.log(wx);
-      m_samples[i] = Math.min(Math.max(wx, -1.0), 1.0);
-      m_samples[i+1] = Math.min(Math.max(wy, -1.0), 1.0);
+      m_samples[i] = Math.min(Math.max(wx * volume, -1.0), 1.0);
+      m_samples[i+1] = Math.min(Math.max(wy * volume, -1.0), 1.0);
       m_audio_time += 1;
     }
 
@@ -147,32 +147,27 @@ class Buffer {
     this.play_ny = play_ny;
     this.play_px = play_px;
     this.play_py = play_py;
-    this.m_samples = m_samples;
     this.m_audio_time = m_audio_time;
     this.mean_x = mean_x;
     this.mean_y = mean_y;
 
     //Return the sound clip
-    return !audio_reset;
+    return m_samples;
   }
 }
 
 const buffer = new Buffer();
-var nIntervId;
 self.addEventListener('message', function(e) {
-  const coord = e.data;
-  if (coord[0] == "setPoint") {
-    buffer.fractalType = coord[3];
-    buffer.setPoint(coord[1], coord[2]);
+  const message = e.data;
+  buffer.fractalType = message.fractalType;
+  buffer.maxFreq = message.maxFreq;
+  buffer.sustain = message.sustain;
+  if (message.type == "setPoint") {
+    buffer.setPoint(message.point.x, message.point.y);
   }
-  calc();
-  // if (!nIntervId) {
-  //   var nIntervId = setInterval(calc, (sampleRate / AUDIO_BUFF_SIZE) * 1000);
-  // }
-
+  calculateClip();
 }, false);
 
-function calc() {
-  buffer.audioData();
-  self.postMessage([buffer.m_samples, buffer.audio_reset || buffer.audio_pause]);
+function calculateClip() {
+  self.postMessage({samples: buffer.audioData(), shouldStop: buffer.audio_reset || buffer.audio_pause});
 }

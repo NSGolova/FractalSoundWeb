@@ -369,17 +369,8 @@ function initShaderProgram(gl, vsSource, fsSource) {
 //
 function loadShader(gl, type, source) {
   const shader = gl.createShader(type);
-
-  // Send the source to the shader object
-
   gl.shaderSource(shader, source);
-
-  // Compile the shader program
-
   gl.compileShader(shader);
-
-  // See if it compiled successfully
-
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
@@ -389,12 +380,13 @@ function loadShader(gl, type, source) {
   return shader;
 }
 
-var worker;
 var resumed = false;
+var orbit_x, orbit_y;
+var paused = true;
 
 function setupEventHandlers() {
 
-  var px, py, orbit_x, orbit_y;
+  var px, py;
   var leftPressed = false;
   var dragging = false;
   var juliaDrag = false;
@@ -416,70 +408,90 @@ function setupEventHandlers() {
       dragging = (e.button == 1);
       if (e.button == 2) {
         rightclick = true;
-        programInfo.synth.stop()
-        event.preventDefault();
-         return false;
+        paused = true;
+        programInfo.synth.stop();
+        clearOrbit();
       }
       if (e.button == 0) {
         leftPressed = true;
+        paused = false;
         if (!resumed) {
-          // programInfo.synth.feeder.tempo = 1.0;
-          // programInfo.synth.feeder.audioContext.resume();
           programInfo.synth.feeder._backend._context.resume();
-        // programInfo.synth.context.resume().then(() => {
-        //   resumed = true;
-        // });
-      }
-        var coord = ScreenToPt(e.offsetX, e.offsetY);
+        }
 
+        var coord = ScreenToPt(e.offsetX, e.offsetY);
         orbit_x = coord[0];
         orbit_y = coord[1];
-        drawOrbit(programInfo, coord[0], coord[1]);
+        drawOrbit(programInfo, orbit_x, orbit_y);
         programInfo.synth.setPoint(coord[0], coord[1]);
       }
   });
-  if (document.addEventListener) {
-              document.addEventListener('contextmenu', function (e) {
-                  e.preventDefault();
-              }, false);
-          } else {
-              document.attachEvent('oncontextmenu', function () {
-                  window.event.returnValue = false;
-              });
-          }
 
+  // Disable context menu for right click.
+  if (document.addEventListener) {
+      document.addEventListener('contextmenu', function (e) {
+          e.preventDefault();
+      }, false);
+  } else {
+      document.attachEvent('oncontextmenu', function () {
+          window.event.returnValue = false;
+      });
+  }
 
   window.addEventListener('mousemove', e => {
-  if (dragging === true) {
-    curDrag = [e.offsetX, e.offsetY];
-    camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
-    camera[1] += (curDrag[1] - prevDrag[1]) / zoom;
-    prevDrag = curDrag;
+    if (dragging === true) {
+      curDrag = [e.offsetX, e.offsetY];
+      camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
+      camera[1] += (curDrag[1] - prevDrag[1]) / zoom;
+      prevDrag = curDrag;
 
-    drawScene(programInfo);
-  }
-  if (leftPressed === true) {
-    var coord = ScreenToPt(e.offsetX, e.offsetY);
-    programInfo.synth.setPoint(coord[0], coord[1]);
-    drawOrbit(programInfo, coord[0], coord[1]);
-  }
-});
+      drawScene(programInfo);
+      if (!paused) {
+        drawOrbit(programInfo, orbit_x, orbit_y);
+      }
+    }
+    if (leftPressed === true) {
+      var coord = ScreenToPt(e.offsetX, e.offsetY);
+      orbit_x = coord[0];
+      orbit_y = coord[1];
+      drawOrbit(programInfo, orbit_x, orbit_y);
+      programInfo.synth.setPoint(coord[0], coord[1]);
+    }
+  });
 
-window.addEventListener('mouseup', e => {
-  dragging = false;
-  leftPressed = false;
-});
+  window.addEventListener('mouseup', e => {
+    dragging = false;
+    leftPressed = false;
+  });
 
-var tempo = document.querySelector('#volume');
-tempo.addEventListener('change', function() {
-  programInfo.synth.feeder.volume = this.value / 100;
-});
+  var volume = document.querySelector('#volume');
+  volume.addEventListener('input', function() {
+    document.getElementById("volumeLabel").innerHTML = "Volume: " + this.value + "%";
+    programInfo.synth.feeder.volume = this.value / 100;
+  });
 
-setupButtons();
+  var maxFreq = document.querySelector('#maxFreq');
+  maxFreq.addEventListener('input', function() {
+    document.getElementById("tuneLabel").innerHTML = "Tune: " + this.value + "Hz";
+    programInfo.synth.maxFreq = this.value;
+  });
+  var maxFreq = document.querySelector('#sustain');
+  maxFreq.addEventListener('input', function() {
+    programInfo.synth.sustain = this.checked;
+  });
+  var maxFreq = document.querySelector('#colors');
+  maxFreq.addEventListener('input', function() {
+    enableColor(this.checked);
+  });
+  var fpsContainer = document.querySelector('#fpsContainer');
+  fpsContainer.addEventListener("mousedown", function(e){
+      e.stopPropagation();
+  });
+
+  setupButtons();
 }
 
 var g_setSettingsElements;
-
 function setSetting(elem, id) {
   selectFractal(id);
   for (var ii = 0; ii < g_setSettingsElements.length; ++ii) {
@@ -488,9 +500,6 @@ function setSetting(elem, id) {
   elem.style.color = "red"
 }
 
-/**
- * Sets up the count buttons.
- */
 function setupButtons() {
   g_setSettingsElements = [];
   for (var ii = 0; ii < 100; ++ii) {
@@ -519,6 +528,12 @@ function PtToScreen(px, py) {
   return [x, y];
 }
 
+function clearOrbit() {
+  const c = document.querySelector('#lineCanvas');
+  var ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+}
+
 function drawOrbit(programInfo, orbit_x, orbit_y) {
 
   const c = document.querySelector('#lineCanvas');
@@ -541,7 +556,7 @@ function drawOrbit(programInfo, orbit_x, orbit_y) {
         y = fr.y;
         if (x*x + y*y > 1000) {
           break;
-        } else if (i < 4000 / 60) {
+        } else if (i < programInfo.synth.maxFreq / 60) {
           orbit_x = x;
           orbit_y = y;
         }
@@ -554,11 +569,23 @@ function applyZoom(programInfo, amount) {
   zoom += amount * (zoom / 20.0);
 
   drawScene(programInfo);
+  if (!paused) {
+    drawOrbit(programInfo, orbit_x, orbit_y);
+  }
 }
 
 function selectFractal(typeID) {
   programInfo.synth.fractalType = typeID;
   type = typeID;
 
+  drawScene(programInfo);
+  if (!paused) {
+    drawOrbit(programInfo, orbit_x, orbit_y);
+    programInfo.synth.setPoint(orbit_x, orbit_y);
+  }
+}
+
+function enableColor(shouldEnable) {
+  flags = (shouldEnable ? 0x04 : 0);
   drawScene(programInfo);
 }

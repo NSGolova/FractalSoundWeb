@@ -8,8 +8,7 @@
               crossorigin="anonymous"></script>
   </head>
   <body>
-    <div class="fpsContainer">
-      <div class="fps">fps: <span id="fps">32</span></div>
+    <div id="fpsContainer" onclick="">
       <div id="topUI">
       <div class="menuTitle">Fractal type</div>
       <div class="clickable" id="setSetting0" style="color: red;">Mandelbrot Set</div>
@@ -20,8 +19,23 @@
       <div class="clickable" id="setSetting5">Duffing Map</div>
       <div class="clickable" id="setSetting6">Ikeda Map</div>
       <div class="clickable" id="setSetting7">Chirikov Map</div>
-      <div>
-        <label>Volume <input type="range" id="volume" min="1" max="100" value="30"></label>
+      <div><label id="volumeLabel">Volume: 30%</label></div>
+      <div><input type="range" id="volume" min="1" max="100" value="30"></div>
+      <div><label id="tuneLabel">Tune: 4000Hz</label></div>
+      <div><input type="range" id="maxFreq" min="2000" max="10000" value="4000"></div>
+      <div class="toggleButton">
+        <label class="switch">
+          <input type="checkbox" id="sustain" checked>
+          <span class="slider round"></span>
+        </label>
+        <label class="toggleButtonLabel">Sustain</label>
+      </div>
+      <div class="toggleButton">
+        <label class="switch">
+          <input type="checkbox" id="colors">
+          <span class="slider round"></span>
+        </label>
+        <label class="toggleButtonLabel">Colors</label>
       </div>
       <div class="linkContainer">
         <a href="https://youtu.be/GiAj9WW1OfQ">

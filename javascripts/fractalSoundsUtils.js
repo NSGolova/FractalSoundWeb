@@ -15,20 +15,24 @@ function feather(x, y, cx, cy) {
   z = z.multiply(z).multiply(z).divide(one.add(z2)).add(c);
   return {x: z.real, y: z.imag};
 }
+
 function sfx(x, y, cx, cy) {
   var z = new Complex(x, y);
   var c2 = new Complex(cx*cx, cy*cy);
   z = z.multiply(x*x + y*y).subtract(z.multiply(c2));
   return {x: z.real, y: z.imag};
 }
+
 function henon(x, y, cx, cy) {
   return {x: 1.0 - cx*x*x + y, y: cy*x};
 }
+
 function duffing(x, y, cx, cy) {
   const nx = y;
   const ny = -cy*x + cx*y - y*y*y;
   return {x: nx, y: ny};
 }
+
 function ikeda(x, y, cx, cy) {
   const t = 0.4 - 6.0 / (1.0 + x*x + y*y);
   const st = Math.sin(t);
@@ -37,8 +41,10 @@ function ikeda(x, y, cx, cy) {
   const ny = cy*(x*st + y*ct);
   return {x: nx, y: ny};
 }
+
 function chirikov(x, y, cx, cy) {
-  return {x: cy*Math.sin(x), y: cx*y};
+  const ny = y + cy*Math.sin(x);
+  return {x: x + cx*ny, y: ny};
 }
 
 //List of fractal equations
@@ -119,6 +125,7 @@ Complex.prototype.subtract = function(operand) {
 
 	return new Complex (this.real - real, this.imag - imag);
 };
+
 Complex.prototype.multiply = function(operand) {
 	var real, imag;
 
@@ -151,140 +158,64 @@ Complex.prototype.divide = function(operand) {
 
 const AUDIO_BUFF_SIZE = 4000;
 var sampleRate = 40000;
-var maxFreq = 4000;
 
 class Synthesizer {
   constructor() {
     this.audio_pause = false;
-    this.volume = 1.0;
+    this.volume = 0.3;
     this.jx = 1e8;
     this.jy = 1e8;
     this.playing = false;
-
+    this.maxFreq = 4000;
     this.fractalType = 0;
-    this.context = new (window.AudioContext || window.webkitAudioContext)();
-// var AudioFeeder = require('audio-feeder');
+    this.sustain = true;
+
     var feeder = new AudioFeeder();
     feeder.init(2, sampleRate);
     this.feeder = feeder;
-    this.worker = new Worker("../javascripts/fractalSoundsWorker.js");
-
-    // var context = this.context;
-    var worker = this.worker;
     var synth = this;
-    // this.myArrayBuffer = context.createBuffer(2, AUDIO_BUFF_SIZE, sampleRate);
-    worker.addEventListener('message', function(e) {
-      if (e.data[1]) {
+
+    // Worker will calculate sound buffers in the background.
+    this.worker = new Worker("../javascripts/fractalSoundsWorker.js");
+    this.worker.addEventListener('message', function(e) {
+      const message = e.data;
+      if (message.shouldStop) {
         synth.stop();
       } else {
-        synth.m_samples = e.data[0];
+        synth.m_samples = message.samples;
       }
-
-
-      // var channels = 1,
-      // rate = 48000,
-      // sampleCounter = 0,
-      // initialized = false, freq = 261, // middle C
-      //   shellFreq = 0.5, // fade in/out over 2 seconds
-      //   chunkSamples = Math.round(1 * rate), // buffer 1s at a time
-      //   samples = Math.ceil(chunkSamples / freq) * freq,
-      //   buffer2 = new Float32Array(samples),
-      //   packet = [buffer2, buffer2];
-      //
-      // for (var i = 0; i < samples; i++) {
-      //   buffer2[i] = Math.sin((sampleCounter / rate) * freq * 2 * Math.PI)
-      //     * Math.sin((sampleCounter / rate) * shellFreq * 2 * Math.PI);
-      //   sampleCounter++;
-      // }
-      //
-      // feeder.bufferData(packet);
-
-
-      // feeder.start();
     }, false);
-
   }
 
   setPoint(x, y) {
-
     this.audio_pause = false;
-    // this.feeder.stop();
-    // this.feeder.flush();
-    // this.feeder.start();
-    this.worker.postMessage(["setPoint", x, y, this.fractalType]);
-    // this.updateBuffers();
+    this.worker.postMessage({type: "setPoint",
+                             point: {x: x, y: y},
+                             fractalType: this.fractalType,
+                             sustain: this.sustain,
+                             maxFreq: this.maxFreq});
   }
 
   play() {
-    // var context = this.context;
-    // var source = this.source;
     var synth = this;
-
-    // source = context.createBufferSource();
-    // source.addEventListener('ended', (event) => {
-    //
-    // });
-    // var nIntervId = setInterval(function() { synth.updateBuffers(); }, (AUDIO_BUFF_SIZE / sampleRate) * 950);
     var feeder = this.feeder;
     feeder.waitUntilReady(function() {
-      // feeder.bufferData([
-      //   new Float32Array(AUDIO_BUFF_SIZE),
-      //   new Float32Array(AUDIO_BUFF_SIZE)
-      // ]);
-
-      // Start playback...
-      // feeder.start();
-      feeder.volume = 0.3;
+      feeder.volume = synth.volume;
       feeder.start();
-
-      // document.querySelector('button.stop').addEventListener('click', function() {
-        // You can pause output at any time:
-
-        // to release resources, call feeder.close() instead.
-      // });
 
       // Callback when buffered data runs below feeder.bufferThreshold seconds:
       feeder.onbufferlow = function() {
-        // console.log('flow');
-        synth.worker.postMessage(["calc"]);
+        // Ask for more data for the same point.
+        synth.worker.postMessage({type: "calc",
+                                  fractalType: synth.fractalType,
+                                  sustain: synth.sustain,
+                                  maxFreq: synth.maxFreq});
         synth.updateBuffers();
-        // while (feeder.durationBuffered < feeder.bufferThreshold) {
-        //   feeder.bufferData([
-        //     new Float32Array(AUDIO_BUFF_SIZE),
-        //     new Float32Array(AUDIO_BUFF_SIZE)
-        //   ]);
-        // }
       };
 
-      feeder.onstarved = function() {
-    console.log('starving');
-    synth.worker.postMessage(["calc"]);
-    synth.updateBuffers();
-    // bufferSineWave();
-  };
+      feeder.onstarved = feeder.onbufferlow;
     });
-
-    // source.loop = true;
-    // source.buffer = this.myArrayBuffer;
-    // source.connect(context.destination);
-    // source.start();
     this.audio_pause = true;
-  }
-
-  updateBuffers2() {
-    if (!this.audio_pause && this.m_samples) {
-      const buffer = this.m_samples;
-      const volume = this.volume;
-      for (var i = 0; i < AUDIO_BUFF_SIZE; i++) {
-        this.myArrayBuffer.getChannelData(0)[i] = buffer[i*2] * volume;
-        this.myArrayBuffer.getChannelData(1)[i] = buffer[i*2+1] * volume;
-      }
-    } else {
-      for (var i = 0; i < AUDIO_BUFF_SIZE; i++) {
-        this.myArrayBuffer.getChannelData(0)[i] = 0;
-        this.myArrayBuffer.getChannelData(1)[i] = 0;
-      }
-    }
   }
 
   updateBuffers() {
@@ -293,11 +224,11 @@ class Synthesizer {
 
     const buffer = this.m_samples;
     if (buffer && !this.audio_pause) {
-    for (var i = 0; i < AUDIO_BUFF_SIZE; i++) {
-      lchannel[i] = buffer[i*2];
-      rchannel[i] = buffer[i*2+1];
+      for (var i = 0; i < AUDIO_BUFF_SIZE; i++) {
+        lchannel[i] = buffer[i*2];
+        rchannel[i] = buffer[i*2+1];
+      }
     }
-  }
     this.feeder.bufferData([
       lchannel,
       rchannel
@@ -305,8 +236,6 @@ class Synthesizer {
   }
 
   stop() {
-    // if (this.audio_pause) { return; }
     this.audio_pause = true;
-    // this.feeder.stop();
   }
 }
