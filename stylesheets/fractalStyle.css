@@ -12,7 +12,15 @@ body {
     background-color: rgba(255,255,255,0.9);
     border-radius: 10px;
     padding: 10px;
-    z-index: 2;
+}
+
+#recordingControls {
+    position: absolute; left: 10px; bottom: 10px; width: 10%; height: 10%;
+    z-index: 3;
+    color: gray;
+    background-color: rgba(255,255,255,0.9);
+    border-radius: 10px;
+    padding: 10px;
 }
 
 .linkContainer {
@@ -105,4 +113,104 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+.btn {
+	position: relative;
+  display:inline-block;
+	width: 40px;
+	height: 40px;
+	border: black 3px solid;
+	border-radius: 20px;
+	cursor: pointer;
+	transition: border 0.1s ease-in-out;
+}
+
+#composerShow {
+  width: 25px;
+	height: 25px;
+	border: black 0px solid;
+}
+
+#recording {
+	border: red 3px solid;
+}
+
+.btn:hover {
+	border: #555 3px solid;
+}
+
+.btn:hover .bar {
+	background-color: #555;
+}
+
+.btn .bar {
+	display: inline-block;
+	position: absolute;
+	top: 10px;
+	left: 0;
+	width: 3px;
+	height: 20px;
+	border-radius: 3px;
+	background-color: black;
+	transform-origin: center;
+	transition: transform 0.4s ease-in-out, background 0.1s ease-in-out;
+}
+
+.btn.pause .bar-1 {
+	transform: translateX(13.5px) translateY(0px) rotate(0deg);
+}
+
+.btn.pause .bar-2 {
+	transform: translateX(24px) translateY(0px) rotate(0deg);
+}
+
+.btn.pause .bar-3 {
+	transform: translateX(13.5px) translateY(0px) rotate(0deg);
+}
+
+.btn.play .bar-1 {
+	transform: translateX(20px) translateY(-5px) rotate(-55deg);
+}
+
+.btn.play .bar-2 {
+	transform: translateX(20px) translateY(5px) rotate(-125deg);
+}
+
+.btn.play .bar-3 {
+	transform: translateX(13.5px) translateY(0px) rotate(0deg);
+}
+
+.btn.hide .bar-1 {
+	transform: translateX(13.5px) translateY(0px) rotate(-32deg);
+}
+
+.btn.hide .bar-2 {
+	transform: translateX(24px) translateY(0px) rotate(32deg);
+}
+
+.btn.show .bar-1 {
+	transform: translateX(13.5px) translateY(0px) rotate(32deg);
+}
+
+.btn.show .bar-2 {
+	transform: translateX(24px) translateY(0px) rotate(-32deg);
+}
+
+.btn.record .bar-1 {
+  width: 20px;
+	height: 20px;
+	border-radius: 15px;
+  border: red 3px solid;
+  background-color: red;
+  transform: translateX(7px) translateY(-3px);
+}
+
+.btn.stopRecord .bar-1 {
+  width: 20px;
+	height: 20px;
+	border-radius: 2px;
+  border: red 3px solid;
+  background-color: red;
+  transform: translateX(7px) translateY(-3px);
 }

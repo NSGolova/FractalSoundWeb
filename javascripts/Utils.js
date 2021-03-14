@@ -176,7 +176,7 @@ class Synthesizer {
     var synth = this;
 
     // Worker will calculate sound buffers in the background.
-    this.worker = new Worker("./javascripts/fractalSoundsWorker.js");
+    this.worker = new Worker("./javascripts/Worker.js");
     this.worker.addEventListener('message', function(e) {
       const message = e.data;
       if (message.shouldStop) {
@@ -194,6 +194,10 @@ class Synthesizer {
                              fractalType: this.fractalType,
                              sustain: this.sustain,
                              maxFreq: this.maxFreq});
+  }
+
+  resume() {
+    this.feeder._backend._context.resume();
   }
 
   play() {
@@ -237,5 +241,100 @@ class Synthesizer {
 
   stop() {
     this.audio_pause = true;
+  }
+}
+
+class Overlay {
+  constructor(canvas, fractal) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.fractal = fractal;
+    this.recording = false;
+    this.paused = true;
+  }
+
+  draw() {
+    const c = this.canvas;
+    this.ctx.clearRect(0, 0, c.width, c.height);
+
+    this.drawOrbits();
+    this.drawNotes();
+  }
+
+  drawOrbits() {
+    const c = this.canvas;
+    const ctx = this.ctx;
+
+    if (this.recording) {
+      for (var i = 0; i < this.track.length; i++) {
+        this.drawRecordingPoint(this.track[i]);
+      }
+    }
+    if (!this.paused) {
+      for (var i = 0; i < this.track.length; i++) {
+        this.drawNote(this.track[i]);
+      }
+    }
+    var singleNote = this.track.singleNote;
+    if (!singleNote) { return; }
+    this.drawNote(singleNote);
+  }
+
+  drawNote(note) {
+    const ctx = this.ctx;
+    var x = note.x;
+    var y = note.y;
+    const cx = x;
+    const cy = y;
+    ctx.beginPath();
+    var normalized = fractal.ptToScreen(x, y);
+    ctx.moveTo(normalized[0], normalized[1]);
+    // double cx = (hasJulia ? jx : px);
+    // double cy = (hasJulia ? jy : py);
+    for (var i = 0; i < 200; ++i) {
+      const fr = all_fractals[note.fractalType](x, y, cx, cy);
+      normalized = fractal.ptToScreen(fr.x, fr.y);
+      ctx.lineTo(normalized[0], normalized[1]);
+      x = fr.x;
+      y = fr.y;
+      if (x*x + y*y > 1000) {
+        break;
+      } else if (i < note.maxFreq / 60) {
+        // orbit_x = x;
+        // orbit_y = y;
+      }
+    }
+    ctx.strokeStyle = note.color;
+    ctx.stroke();
+  }
+
+  drawNotes() {
+    const c = this.canvas;
+    const ctx = this.ctx;
+
+    this.track.notes.forEach((note, i) => {
+      const normalized = fractal.ptToScreen(note.x, note.y);
+      ctx.beginPath();
+      ctx.strokeStyle = note.color;
+      ctx.lineWidth = 2;
+
+      ctx.arc(normalized[0], normalized[1], 10, 0, Math.PI * 2, true);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(normalized[0], normalized[1], 0.5, 0, Math.PI * 2, true);
+      ctx.stroke();
+    });
+
+
+  }
+
+  drawRecordingPoint(note) {
+
+  }
+
+  clearOrbit() {
+    const c = this.canvas;
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, c.width, c.height);
   }
 }
