@@ -394,25 +394,65 @@ function setupEventHandlers() {
   var showHelpMenu = false;
   var curDrag;
   var prevDrag;
+  var gestureStartRotation, gestureStartScale;
+
+  window.addEventListener("gesturestart", function (e) {
+    e.preventDefault();
+
+    prevDrag = [e.pageX, e.pageY];
+    gestureStartRotation = rotation;
+    gestureStartScale = scale;
+  });
+
+  window.addEventListener("gesturechange", function (e) {
+    e.preventDefault();
+
+    // rotation = gestureStartRotation + e.rotation;
+    applyZoom(programInfo, gestureStartScale * e.scale);
+
+    curDrag = [e.pageX, e.pageY];
+    camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
+    camera[1] += (curDrag[1] - prevDrag[1]) / zoom;
+    prevDrag = curDrag;
+
+    drawScene(programInfo);
+    if (!paused) {
+      drawOrbit(programInfo, orbit_x, orbit_y);
+    }
+  })
+
+  window.addEventListener("gestureend", function (e) {
+    e.preventDefault();
+  });
+
+  document.addEventListener('keyup', event => {
+    if (event.code === 'Space') {
+      paused = true;
+      programInfo.synth.stop();
+      clearOrbit();
+    }
+  })
 
   window.addEventListener("wheel", e => {
+    e.preventDefault();
+
     const delta = Math.sign(e.deltaY)
     cameraFp = [e.offsetX, e.offsetY];
     applyZoom(programInfo, delta);
-  });
+  }, { passive: false });
 
   window.addEventListener("mousedown", event => {
     var rightclick;
     var e = window.event;
     prevDrag = [e.offsetX, e.offsetY];
-      dragging = (e.button == 1);
+      dragging = (e.button == 1 || (e.altKey && e.button == 0));
       if (e.button == 2) {
         rightclick = true;
         paused = true;
         programInfo.synth.stop();
         clearOrbit();
       }
-      if (e.button == 0) {
+      if (!dragging && e.button == 0) {
         leftPressed = true;
         paused = false;
         if (!resumed) {

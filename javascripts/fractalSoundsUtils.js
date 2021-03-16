@@ -176,7 +176,7 @@ class Synthesizer {
     var synth = this;
 
     // Worker will calculate sound buffers in the background.
-    this.worker = new Worker("../javascripts/fractalSoundsWorker.js");
+    this.worker = new Worker("./javascripts/fractalSoundsWorker.js");
     this.worker.addEventListener('message', function(e) {
       const message = e.data;
       if (message.shouldStop) {

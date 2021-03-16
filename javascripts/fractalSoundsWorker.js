@@ -1,4 +1,4 @@
-importScripts('/javascripts/fractalSoundsUtils.js');
+importScripts('./fractalSoundsUtils.js');
 
 class Buffer {
   constructor() {
