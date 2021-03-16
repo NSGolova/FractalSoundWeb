@@ -34,7 +34,12 @@ function main() {
   const gl = canvas.getContext('webgl2');
 
   if (!gl) {
-    alert('Unable to initialize WebGL. Your browser or machine may not support it.');
+    const text = `
+    Unable to initialize WebGL. Your browser or machine may not support it.
+    Use Google Chrome for the best experience.
+    Check out https://discussions.apple.com/thread/8655829 for Safari.
+    `;
+    alert(text);
     return;
   }
 
@@ -394,21 +399,20 @@ function setupEventHandlers() {
   var showHelpMenu = false;
   var curDrag;
   var prevDrag;
-  var gestureStartRotation, gestureStartScale;
+  var gestureStartRotation;
 
   window.addEventListener("gesturestart", function (e) {
     e.preventDefault();
 
     prevDrag = [e.pageX, e.pageY];
-    gestureStartRotation = rotation;
-    gestureStartScale = scale;
   });
 
   window.addEventListener("gesturechange", function (e) {
     e.preventDefault();
 
     // rotation = gestureStartRotation + e.rotation;
-    applyZoom(programInfo, gestureStartScale * e.scale);
+
+    applyZoom(programInfo, e.scale - 1.0);
 
     curDrag = [e.pageX, e.pageY];
     camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
@@ -436,8 +440,9 @@ function setupEventHandlers() {
   window.addEventListener("wheel", e => {
     e.preventDefault();
 
-    const delta = Math.sign(e.deltaY)
+    const delta = -Math.sign(e.deltaY)
     cameraFp = [e.offsetX, e.offsetY];
+
     applyZoom(programInfo, delta);
   }, { passive: false });
 
