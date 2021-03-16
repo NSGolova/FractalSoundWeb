@@ -16,15 +16,29 @@ class Composer {
     const elemTop = canvas.offsetTop + canvas.clientTop;
 
     const composer = this;
-    canvas.addEventListener('click', function(event) {
-    var x = event.offsetX,
-        y = event.offsetY;
+    canvas.addEventListener('mousedown', function(event) {
+      var x = event.offsetX,
+          y = event.offsetY;
 
-    const titleWidth = 50, barHeight = canvas.clientHeight / composer.track.notes.length, barWidth = canvas.clientWidth / trackLength;
-    const i = Math.trunc(y / barHeight), j = Math.trunc((x - titleWidth - 1) / barWidth);
-    composer.track.notes[i].midi[j] = !composer.track.notes[i].midi[j];
-    composer.draw();
+      const titleWidth = 50, barHeight = canvas.clientHeight / composer.track.notes.length, barWidth = canvas.clientWidth / trackLength;
+      const i = Math.trunc(y / barHeight), j = Math.trunc((x - titleWidth - 1) / barWidth);
+      composer.track.notes[i].midi[j] = !composer.track.notes[i].midi[j];
+      composer.draw();
 
+      event.stopPropagation();
+    }, false);
+
+    canvas.addEventListener('mousemove', function(event) {
+      var x = event.offsetX,
+          y = event.offsetY;
+
+      const titleWidth = 50, barHeight = canvas.clientHeight / composer.track.notes.length, barWidth = canvas.clientWidth / trackLength;
+      composer.track.notes.forEach((note, i) => {
+        note.hovered = Math.trunc(y / barHeight) == i;
+      });
+
+      composer.draw();
+      overlay.draw();
     }, false);
   }
 
@@ -79,7 +93,11 @@ class Composer {
       }
 
     } else {
-      this.handleClick(x, y, right);
+      if (right) {
+
+      } else {
+        this.handleClick(x, y, right);
+      }
     }
   }
 

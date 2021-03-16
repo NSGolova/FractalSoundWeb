@@ -36,13 +36,11 @@ function setupEventHandlers() {
   var curDrag;
   var prevDrag;
 
-  window.addEventListener("wheel", e => {
-    const delta = Math.sign(e.deltaY)
-    // cameraFp = [e.offsetX, e.offsetY];
-    composer.zoom = delta;
+  document.addEventListener("wheel", e => {
+    composer.zoom = Math.sign(e.deltaY);
   });
 
-  window.addEventListener("mousedown", event => {
+  document.addEventListener("mousedown", event => {
     var e = window.event;
     prevDrag = [e.offsetX, e.offsetY];
     dragging = (e.button == 1);

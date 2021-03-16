@@ -315,8 +315,8 @@ class Overlay {
     this.track.notes.forEach((note, i) => {
       const normalized = fractal.ptToScreen(note.x, note.y);
       ctx.beginPath();
-      ctx.strokeStyle = note.color;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = (note.hovered ? "white" : note.color);
+      ctx.lineWidth = (note.hovered ? 3 : 2);
 
       ctx.arc(normalized[0], normalized[1], 10, 0, Math.PI * 2, true);
       ctx.stroke();
