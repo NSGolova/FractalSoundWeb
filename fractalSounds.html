@@ -6,6 +6,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
               integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
               crossorigin="anonymous"></script>
+    <meta property="og:image" content="./images/preview.png">
+    <meta property="og:title" content="Fractal sounds — golova.dev">
+    <meta property="og:type" content="website">
   </head>
   <body>
     <div id="fpsContainer" onclick="">
@@ -22,20 +25,27 @@
       <div><label id="volumeLabel">Volume: 30%</label></div>
       <div><input type="range" id="volume" min="1" max="100" value="30"></div>
       <div><label id="tuneLabel">Tune: 4000Hz</label></div>
-      <div><input type="range" id="maxFreq" min="2000" max="10000" value="4000"></div>
-      <div class="toggleButton">
+      <div><input type="range" id="maxFreq" min="2000" max="10000" value="4000" step="100"></div>
+      <div class="toggleButton" title="Prevent sound from fading over time.">
         <label class="switch">
           <input type="checkbox" id="sustain" checked>
           <span class="slider round"></span>
         </label>
         <label class="toggleButtonLabel">Sustain</label>
       </div>
-      <div class="toggleButton">
+      <div class="toggleButton" title="Show colors of fractals' inner structure.">
         <label class="switch">
           <input type="checkbox" id="colors">
           <span class="slider round"></span>
         </label>
         <label class="toggleButtonLabel">Colors</label>
+      </div>
+      <div class="toggleButton" title="Show animation of sound path.">
+        <label class="switch">
+          <input type="checkbox" id="animations" checked>
+          <span class="slider round"></span>
+        </label>
+        <label class="toggleButtonLabel"><td><nobr>Animated path</nobr></td></label>
       </div>
       <div>
         <p style='font: 12px "Lucida Grande", Helvetica, Arial, sans-serif;'>

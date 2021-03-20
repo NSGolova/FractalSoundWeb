@@ -388,6 +388,7 @@ function loadShader(gl, type, source) {
 var resumed = false;
 var orbit_x, orbit_y;
 var paused = true;
+var animated = true;
 
 function setupEventHandlers() {
 
@@ -421,7 +422,7 @@ function setupEventHandlers() {
 
     drawScene(programInfo);
     if (!paused) {
-      drawOrbit(programInfo, orbit_x, orbit_y);
+      drawOrbit(programInfo, true);
     }
   })
 
@@ -467,7 +468,7 @@ function setupEventHandlers() {
         var coord = ScreenToPt(e.offsetX, e.offsetY);
         orbit_x = coord[0];
         orbit_y = coord[1];
-        drawOrbit(programInfo, orbit_x, orbit_y);
+        drawOrbit(programInfo);
         programInfo.synth.setPoint(coord[0], coord[1]);
       }
   });
@@ -492,14 +493,14 @@ function setupEventHandlers() {
 
       drawScene(programInfo);
       if (!paused) {
-        drawOrbit(programInfo, orbit_x, orbit_y);
+        drawOrbit(programInfo, true);
       }
     }
     if (leftPressed === true) {
       var coord = ScreenToPt(e.offsetX, e.offsetY);
       orbit_x = coord[0];
       orbit_y = coord[1];
-      drawOrbit(programInfo, orbit_x, orbit_y);
+      drawOrbit(programInfo);
       programInfo.synth.setPoint(coord[0], coord[1]);
     }
   });
@@ -527,6 +528,22 @@ function setupEventHandlers() {
   var maxFreq = document.querySelector('#colors');
   maxFreq.addEventListener('input', function() {
     enableColor(this.checked);
+  });
+  var maxFreq = document.querySelector('#animations');
+  maxFreq.addEventListener('input', function() {
+    if (!paused) {
+      if (animated && !this.checked) {
+        orbit_x = orbit_px;
+        orbit_y = orbit_py;
+      }
+      animated = this.checked;
+      if (timer) {
+        clearInterval(timer);
+      }
+      drawOrbit(programInfo);
+    } else {
+      animated = this.checked;
+    }
   });
   var fpsContainer = document.querySelector('#fpsContainer');
   fpsContainer.addEventListener("mousedown", function(e){
@@ -573,41 +590,60 @@ function PtToScreen(px, py) {
   return [x, y];
 }
 
+var px, py, orbit_px, orbit_py, timer;
+
 function clearOrbit() {
   const c = document.querySelector('#lineCanvas');
   var ctx = c.getContext("2d");
   ctx.clearRect(0, 0, c.width, c.height);
+  if (timer) {
+    clearInterval(timer);
+  }
 }
 
-function drawOrbit(programInfo, orbit_x, orbit_y) {
+function drawOrbit(programInfo, repeat) {
+  var x = orbit_x;
+  var y = orbit_y;
+  const cx = animated & repeat ? px : x;
+  const cy = animated & repeat ? py : y;
+  const fractalFunction = all_fractals[programInfo.synth.fractalType];
+
+  if (animated && !repeat) {
+    px = x;
+    py = y;
+    orbit_px = orbit_x;
+    orbit_py = orbit_y;
+    if (timer) {
+      clearInterval(timer);
+    }
+    timer = setInterval(function() {
+      drawOrbit(programInfo, true);
+    }, 20);
+  }
 
   const c = document.querySelector('#lineCanvas');
   var ctx = c.getContext("2d");
   ctx.clearRect(0, 0, c.width, c.height);
-  var x = orbit_x;
-  var y = orbit_y;
-  const cx = x;
-  const cy = y;
   ctx.beginPath();
-      var normalized = PtToScreen(x, y);
-      ctx.moveTo(normalized[0], normalized[1]);
-      // double cx = (hasJulia ? jx : px);
-      // double cy = (hasJulia ? jy : py);
-      for (var i = 0; i < 200; ++i) {
-        const fr = all_fractals[programInfo.synth.fractalType](x, y, cx, cy);
-        normalized = PtToScreen(fr.x, fr.y);
-        ctx.lineTo(normalized[0], normalized[1]);
-        x = fr.x;
-        y = fr.y;
-        if (x*x + y*y > 1000) {
-          break;
-        } else if (i < programInfo.synth.maxFreq / 60) {
-          orbit_x = x;
-          orbit_y = y;
-        }
-      }
-      ctx.strokeStyle = "#FF0000";
-      ctx.stroke();
+  var normalized = PtToScreen(x, y);
+  ctx.moveTo(normalized[0], normalized[1]);
+  // double cx = (hasJulia ? jx : px);
+  // double cy = (hasJulia ? jy : py);
+  for (var i = 0; i < 200; ++i) {
+    const fr = fractalFunction(x, y, cx, cy);
+    normalized = PtToScreen(fr.x, fr.y);
+    ctx.lineTo(normalized[0], normalized[1]);
+    x = fr.x;
+    y = fr.y;
+    if (x*x + y*y > 1000) {
+      break;
+    } else if (animated && i < programInfo.synth.maxFreq / 60) {
+      orbit_x = x;
+      orbit_y = y;
+    }
+  }
+  ctx.strokeStyle = "#FF0000";
+  ctx.stroke();
 }
 
 function applyZoom(programInfo, amount) {
@@ -615,7 +651,7 @@ function applyZoom(programInfo, amount) {
 
   drawScene(programInfo);
   if (!paused) {
-    drawOrbit(programInfo, orbit_x, orbit_y);
+    drawOrbit(programInfo, true);
   }
 }
 
@@ -625,7 +661,9 @@ function selectFractal(typeID) {
 
   drawScene(programInfo);
   if (!paused) {
-    drawOrbit(programInfo, orbit_x, orbit_y);
+    orbit_x = orbit_px;
+    orbit_y = orbit_py;
+    drawOrbit(programInfo);
     programInfo.synth.setPoint(orbit_x, orbit_y);
   }
 }
