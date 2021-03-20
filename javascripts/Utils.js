@@ -170,9 +170,6 @@ class Synthesizer {
     this.fractalType = 0;
     this.sustain = true;
 
-    var feeder = new AudioFeeder();
-    feeder.init(2, sampleRate);
-    this.feeder = feeder;
     var synth = this;
 
     // Worker will calculate sound buffers in the background.
@@ -187,8 +184,13 @@ class Synthesizer {
     }, false);
   }
 
-  setPoint(x, y) {
-    this.audio_pause = false;
+  setPoint(x, y, paused) {
+    this.x = x;
+    this.y = y;
+
+    if (!paused) {
+      this.audio_pause = false;
+    }
     this.worker.postMessage({type: "setPoint",
                              point: {x: x, y: y},
                              fractalType: this.fractalType,
@@ -201,25 +203,31 @@ class Synthesizer {
   }
 
   play() {
-    var synth = this;
-    var feeder = this.feeder;
-    feeder.waitUntilReady(function() {
-      feeder.volume = synth.volume;
-      feeder.start();
+    if (!this.feeder) {
+      var synth = this;
+      var feeder = new AudioFeeder();
+      feeder.init(2, sampleRate);
+      this.feeder = feeder;
+      feeder.waitUntilReady(function() {
+        feeder.volume = synth.volume;
+        feeder.start();
 
-      // Callback when buffered data runs below feeder.bufferThreshold seconds:
-      feeder.onbufferlow = function() {
-        // Ask for more data for the same point.
-        synth.worker.postMessage({type: "calc",
-                                  fractalType: synth.fractalType,
-                                  sustain: synth.sustain,
-                                  maxFreq: synth.maxFreq});
-        synth.updateBuffers();
-      };
+        // Callback when buffered data runs below feeder.bufferThreshold seconds:
+        feeder.onbufferlow = function() {
+          // Ask for more data for the same point.
+          synth.worker.postMessage({type: "calc",
+                                    fractalType: synth.fractalType,
+                                    sustain: synth.sustain,
+                                    maxFreq: synth.maxFreq});
+          synth.updateBuffers();
+        };
 
-      feeder.onstarved = feeder.onbufferlow;
-    });
-    this.audio_pause = true;
+        feeder.onstarved = feeder.onbufferlow;
+      });
+      this.audio_pause = true;
+    } else {
+      this.audio_pause = false;
+    }
   }
 
   updateBuffers() {
@@ -250,7 +258,6 @@ class Overlay {
     this.ctx = canvas.getContext("2d");
     this.fractal = fractal;
     this.recording = false;
-    this.paused = true;
   }
 
   draw() {

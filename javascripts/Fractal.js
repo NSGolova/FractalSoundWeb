@@ -16,8 +16,12 @@ class Fractal {
     this.gl = gl;
 
     if (!gl) {
-      alert('Unable to initialize WebGL. Your browser or machine may not support it.');
-      return;
+      const text = `
+      Unable to initialize WebGL. Your browser or machine may not support it.
+      Use Google Chrome for the best experience.
+      Check out https://discussions.apple.com/thread/8655829 for Safari.
+      `;
+      alert(text);
     }
 
     // Initialize a shader program; this is where all the lighting

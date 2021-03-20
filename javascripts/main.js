@@ -37,13 +37,14 @@ function setupEventHandlers() {
   var prevDrag;
 
   document.addEventListener("wheel", e => {
-    composer.zoom = Math.sign(e.deltaY);
-  });
+    e.preventDefault();
+    composer.zoom = -Math.sign(e.deltaY);
+  }, { passive: false });
 
   document.addEventListener("mousedown", event => {
     var e = window.event;
     prevDrag = [e.offsetX, e.offsetY];
-    dragging = (e.button == 1);
+    dragging = (e.button == 1 || (e.altKey && e.button == 0));
 
     var coord = fractal.screenToPt(e.offsetX, e.offsetY);
     // orbit_x = coord[0];
@@ -51,7 +52,7 @@ function setupEventHandlers() {
     if (e.button == 2) {
       composer.handleClick(coord[0], coord[1], true);
     }
-    if (e.button == 0) {
+    if (!dragging && e.button == 0) {
       if (!resumed) {
         synth.resume();
       }
@@ -74,11 +75,8 @@ function setupEventHandlers() {
   window.addEventListener('mousemove', e => {
     if (dragging === true) {
       curDrag = [e.offsetX, e.offsetY];
-      fractal.applyDrag([curDrag[0] - prevDrag[0], curDrag[1] - prevDrag[1]]);
+      composer.drag = [curDrag[0] - prevDrag[0], curDrag[1] - prevDrag[1]];
       prevDrag = curDrag;
-
-      fractal.draw();
-      overlay.draw();
     }
 
     var coord = fractal.screenToPt(e.offsetX, e.offsetY);
@@ -90,6 +88,35 @@ function setupEventHandlers() {
     leftPressed = false;
   });
 
+  var gestureStartRotation;
+
+  window.addEventListener("gesturestart", function (e) {
+    e.preventDefault();
+
+    prevDrag = [e.pageX, e.pageY];
+  });
+
+  window.addEventListener("gesturechange", function (e) {
+    e.preventDefault();
+
+    // rotation = gestureStartRotation + e.rotation;
+    composer.zoom = e.scale - 1.0;
+
+    curDrag = [e.pageX, e.pageY];
+    composer.drag = [curDrag[0] - prevDrag[0], curDrag[1] - prevDrag[1]];
+    prevDrag = curDrag;
+  })
+
+  window.addEventListener("gestureend", function (e) {
+    e.preventDefault();
+  });
+
+  document.addEventListener('keyup', event => {
+    if (event.code === 'Space') {
+      composer.handleClick(undefined, undefined, true);
+    }
+  })
+
   var volume = document.querySelector('#volume');
   volume.addEventListener('input', function() {
     document.getElementById("volumeLabel").innerHTML = "Volume: " + this.value + "%";
@@ -100,6 +127,11 @@ function setupEventHandlers() {
   maxFreq.addEventListener('input', function() {
     document.getElementById("tuneLabel").innerHTML = "Tune: " + this.value + "Hz";
     synth.maxFreq = this.value;
+  });
+  var maxFreq = document.querySelector('#bpm');
+  maxFreq.addEventListener('input', function() {
+    document.getElementById("bpmLabel").innerHTML = "BPM: " + this.value;
+    composer.bpm = this.value;
   });
   var maxFreq = document.querySelector('#sustain');
   maxFreq.addEventListener('input', function() {
@@ -162,9 +194,11 @@ function setupEventHandlers() {
 document.querySelector('#playing').addEventListener('click', function(e){
 	e.preventDefault();
 	if (this.classList.contains('play')) {
+    composer.playing = true;
 		this.classList.remove('play');
 		this.classList.add('pause');
 	} else {
+    composer.playing = false;
 		this.classList.remove('pause');
 		this.classList.add('play');
 	}

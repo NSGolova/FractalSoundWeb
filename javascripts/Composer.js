@@ -23,6 +23,7 @@ class Composer {
       const titleWidth = 50, barHeight = canvas.clientHeight / composer.track.notes.length, barWidth = canvas.clientWidth / trackLength;
       const i = Math.trunc(y / barHeight), j = Math.trunc((x - titleWidth - 1) / barWidth);
       composer.track.notes[i].midi[j] = !composer.track.notes[i].midi[j];
+      composer.playSustained(composer.track.notes[i]);
       composer.draw();
 
       event.stopPropagation();
@@ -45,22 +46,23 @@ class Composer {
   play() {
     this.paused = false;
 
-    const overlay = this.overlay;
-    overlay.paused = false;
-    overlay.draw();
+    if (!this.player) {
+      this.player = new Player(this);
+    }
+    this.player.play(this.track);
   }
 
   stop() {
     this.paused = true;
     this.synth.stop();
 
-    const overlay = this.overlay;
-    overlay.paused = true;
+    if (this.player) {
+      this.player.stop();
+    }
     overlay.draw();
   }
 
   handleClick(x, y, right) {
-    const color = this.fractal.colorAt(x, y);
     if (right) {
       if (this._recording) {
 
@@ -68,8 +70,8 @@ class Composer {
       this.track.singleNote = undefined;
       this.stop();
     } else {
+      const color = this.fractal.colorAt(x, y);
       if (this._recording) {
-
         var note = new Note(x, y, this.fractal.type, this.fractal.maxFreq, 'rgb(' + color[0] + ', ' + color[1] + ', ' + color[2] + ', 1)');
         note.midi[this.track.notes.length] = true;
         this.track.notes.push(note);
@@ -128,8 +130,20 @@ class Composer {
         if (note && note.midi[j]) {
           ctx.fillStyle = note.color;
           ctx.fillRect(titleWidth + j * barWidth + 1, i * barHeight, barWidth, barHeight);
+        } else if (track.tick == j) {
+          ctx.fillStyle = "lightblue";
+          ctx.fillRect(titleWidth + j * barWidth + 1, i * barHeight, barWidth, barHeight);
         }
       }
+    }
+  }
+
+  playSustained(note) {
+    if (this.paused) {
+      const oldSustain = this.synth.sustain;
+      this.synth.sustain = false;
+      this.synth.setPoint(note.x, note.y);
+      this.synth.sustain = oldSustain;
     }
   }
 
@@ -164,29 +178,93 @@ class Composer {
 
   set zoom(newValue) {
     this.fractal.applyZoom(newValue);
+    this.fractal.draw();
     this.overlay.draw();
+  }
+
+  set drag(newValue) {
+    this.fractal.applyDrag(newValue);
+    this.fractal.draw();
+    this.overlay.draw();
+  }
+
+  set bpm(newValue) {
+    this.track.bpm = newValue;
+    if (!this.paused) {
+      this.player.reschedule();
+    }
   }
 }
 
 class Player {
+  constructor(composer) {
+    this.composer = composer;
+    this.pool = [];
+  }
+
   play(track) {
     this.track = track;
     this.synths = new Array(track.notes.length);
-    for (var i = 0; i<track.notes.length; i++) {
-      const newSynth = new Synthesizer();
-      this.synths[i] = newSynth;
-      newSynth.play();
-    }
+    track.notes.forEach((note, i) => {
+      var synth;
+      if (i < this.pool.length) {
+        synth = this.pool[i];
+      } else {
+        synth = new Synthesizer();
+        this.pool.push(synth);
+        synth.play();
+      }
+      this.synths[i] = synth;
+      synth.fractalType = note.fractalType;
+      synth.sustain = note.sustain;
+      // synth.maxFreq = note.maxFreq;
+      synth.setPoint(note.x, note.y, true);
+    });
 
-
+    const player = this;
+    this.timer = setInterval(function() {
+      player.tick();
+    }, (60 / this.track.bpm) * 1000);
   }
-  stop() {
 
+  stop() {
+    clearInterval(this.timer);
+    this.track.tick = -1;
+    this.synths.forEach((synth, i) => {
+      synth.stop();
+    });
   }
 
   tick() {
-    this.track.tick++;
+    const track = this.track;
+    track.tick++;
+    if (track.tick == trackLength) {
+      track.tick = 0;
+    }
 
+    const tick = track.tick;
+    track.notes.forEach((note, i) => {
+      if (note.midi[tick]) {
+        if (this.synths.x != note.x || this.synth.y != note.y) {
+          this.synths[i].setPoint(note.x, note.y);
+        } else {
+          this.synths[i].play();
+        }
 
+      } else {
+        // this.synths[i].stop();
+      }
+    });
+
+    this.composer.draw();
+    this.composer.overlay.draw();
+  }
+
+  reschedule() {
+    const player = this;
+    clearInterval(this.timer);
+    this.timer = setInterval(function() {
+      player.tick();
+    }, (60 / this.track.bpm) * 1000);
   }
 }

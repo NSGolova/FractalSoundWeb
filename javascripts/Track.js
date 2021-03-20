@@ -7,7 +7,7 @@ class Track {
     this.bpm = 120;
     this.play_cx = 0.0;
     this.playing = false;
-    this.tick = 0;
+    this.tick = -1;
   }
 
 
@@ -20,6 +20,7 @@ class Note {
     this.color = color;
     this.maxFreq = maxFreq;
     this.fractalType = fractalType;
+    this.sustain = false;
 
     this.midi = new Array(trackLength);
   }

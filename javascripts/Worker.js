@@ -39,10 +39,10 @@ class Buffer {
       this.audio_reset = false;
     }
 
-    var dx;
-    var dy;
-    var dpx;
-    var dpy;
+    var dx = 0;
+    var dy = 0;
+    var dpx = 0;
+    var dpy = 0;
 
     // Empty container for two channels.
     var m_samples = new Array(AUDIO_BUFF_SIZE * 2);
