@@ -11,6 +11,10 @@ var iterations;
 var julia;
 var type;
 var programInfo;
+var paused;
+var resumed = false;
+var orbit_x, orbit_y;
+var animated;
 
 function main() {
   const canvas = document.querySelector('#glcanvas');
@@ -25,6 +29,8 @@ function main() {
   iterations = 1200;
   julia = [1e8, 1e8];
   type = 0;
+  paused = true;
+  animated = true;
   resolution = [placeholder.getBoundingClientRect().width, placeholder.getBoundingClientRect().height];
   canvas.width = resolution[0];
   canvas.height = resolution[1];
@@ -249,8 +255,42 @@ function main() {
   };
 
   drawScene(programInfo);
-  setupEventHandlers();
   programInfo.synth.play();
+
+setupButtons();
+  parseArguments(programInfo);
+  setupEventHandlers();
+
+}
+
+function parseArguments(programInfo) {
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  const urlX = parseFloat(urlParams.get('x'));
+  const urlY = parseFloat(urlParams.get('y'));
+  const fractalType = parseInt(urlParams.get('fr'));
+  if (!Number.isNaN(urlX) & !Number.isNaN(urlY) & !Number.isNaN(fractalType)) {
+    paused = false;
+    if (!resumed) {
+      programInfo.synth.feeder._backend._context.resume();
+    }
+    selectFractal(fractalType);
+
+    // var coord = ScreenToPt(urlX, urlY);
+    orbit_x = urlX;
+    orbit_y = urlY;
+    drawOrbit(programInfo);
+    programInfo.synth.setPoint(urlX, urlY);
+  }
+
+    const sustain = urlParams.get('sus');
+    if (sustain != null) {
+      programInfo.synth.sustain = sustain == "true";
+    }
+    const volume = parseFloat(urlParams.get('vm'));
+    if (!Number.isNaN(volume)) {
+      programInfo.synth.feeder.volume = volume;
+    }
 }
 
 //
@@ -385,11 +425,6 @@ function loadShader(gl, type, source) {
   return shader;
 }
 
-var resumed = false;
-var orbit_x, orbit_y;
-var paused = true;
-var animated = true;
-
 function setupEventHandlers() {
 
   var px, py;
@@ -515,16 +550,20 @@ function setupEventHandlers() {
     document.getElementById("volumeLabel").innerHTML = "Volume: " + this.value + "%";
     programInfo.synth.feeder.volume = this.value / 100;
   });
+  volume.value = programInfo.synth.feeder.volume * 100;
+  document.getElementById("volumeLabel").innerHTML = "Volume: " + volume.value + "%";
 
   var maxFreq = document.querySelector('#maxFreq');
   maxFreq.addEventListener('input', function() {
     document.getElementById("tuneLabel").innerHTML = "Tune: " + this.value + "Hz";
     programInfo.synth.maxFreq = this.value;
   });
-  var maxFreq = document.querySelector('#sustain');
-  maxFreq.addEventListener('input', function() {
+  var sustainButton = document.querySelector('#sustain');
+  sustainButton.addEventListener('input', function() {
     programInfo.synth.sustain = this.checked;
   });
+  sustainButton.checked = programInfo.synth.sustain;
+
   var maxFreq = document.querySelector('#colors');
   maxFreq.addEventListener('input', function() {
     enableColor(this.checked);
@@ -545,21 +584,60 @@ function setupEventHandlers() {
       animated = this.checked;
     }
   });
+
+  var shareUrl = document.querySelector('#shareUrl');
+  var shareButton = document.querySelector('#share');
+  shareButton.addEventListener('mousedown', function() {
+    shareUrl.style.height = "20px";
+    shareUrl.style.visibility = "visible";
+    const url = generateUrl();
+    shareUrl.value = url;
+    copyTextToClipboard(shareUrl);
+  });
+  shareUrl.addEventListener('input', function() {
+  });
   var fpsContainer = document.querySelector('#fpsContainer');
   fpsContainer.addEventListener("mousedown", function(e){
       e.stopPropagation();
   });
-
-  setupButtons();
 }
 
 var g_setSettingsElements;
 function setSetting(elem, id) {
   selectFractal(id);
-  for (var ii = 0; ii < g_setSettingsElements.length; ++ii) {
-    g_setSettingsElements[ii].style.color = "gray"
+}
+
+function generateUrl() {
+  const base = "https://www.golova.dev/experiments/fractalSounds";
+  if (paused) {
+    return base;
+  } else {
+    return base + "?x=" + orbit_px
+                + "&y=" + orbit_py
+                + "&fr=" + programInfo.synth.fractalType
+                + "&sus=" + programInfo.synth.sustain
+                + "&vm=" + programInfo.synth.feeder.volume;
   }
-  elem.style.color = "red"
+}
+
+var popupTimer;
+function delayPopup(popup) {
+    popupTimer = setTimeout(function() {
+      popup.style.height = "0px";
+      popup.style.visibility = "hidden";
+    }, 4200);
+}
+
+function copyTextToClipboard(input) {
+  clearTimeout(popupTimer);
+  input.select();
+  document.execCommand("copy");
+
+  const copied = document.querySelector('#copiedLabel');;
+  copied.style.height = "20px";
+  copied.style.visibility = "visible";
+
+  delayPopup(copied);
 }
 
 function setupButtons() {
@@ -656,6 +734,10 @@ function applyZoom(programInfo, amount) {
 }
 
 function selectFractal(typeID) {
+  for (var i = 0; i < g_setSettingsElements.length; ++i) {
+    g_setSettingsElements[i].style.color = i == typeID ? "red" : "gray"
+  }
+
   programInfo.synth.fractalType = typeID;
   type = typeID;
 

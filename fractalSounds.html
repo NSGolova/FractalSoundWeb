@@ -6,9 +6,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
               integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
               crossorigin="anonymous"></script>
-    <meta property="og:image" content="./images/preview.png">
-    <meta property="og:title" content="Fractal sounds — golova.dev">
+    <meta property="og:image" content="https://www.golova.dev/experiments/images/preview.png">
+    <meta property="og:title" content="Interactive fractal experience">
     <meta property="og:type" content="website">
+
+    <meta name="twitter:title" content="golova.dev">
+    <meta name="twitter:description" content="Interactive fractal experience">
+    <meta name="twitter:site" content="@nsgolova">
+    <meta name="twitter:image" content="https://www.golova.dev/experiments/images/preview.png">
+    <meta name="twitter:image:alt" content="Fractal sounds">
+    <meta name="twitter:card" content="summary">
   </head>
   <body>
     <div id="fpsContainer" onclick="">
@@ -58,6 +65,13 @@
         <br>Scroll or pinch to <b>zoom</b>.
       </p>
       </div>
+      <div>
+      <input id="share" type="button" value="Copy share link">
+    </div>
+    <div>
+      <input id="shareUrl" type="text" value="" style="visibility: hidden; height: 0px; width: 132px;"/>
+    </div>
+    <div id="copiedLabel" style="visibility: hidden; height: 0px; width: 132px;">Copied!</div>
       <div class="linkContainer">
         <a href="https://youtu.be/GiAj9WW1OfQ">
           <img src="./images/youtube.png" width="32" height="32" title="Video explanation">
