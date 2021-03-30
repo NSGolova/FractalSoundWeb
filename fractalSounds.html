@@ -9,9 +9,9 @@
     <meta property="og:image" content="https://www.golova.dev/experiments/images/preview.png">
     <meta property="og:title" content="Interactive fractal experience">
     <meta property="og:type" content="website">
-    <link rel="apple-touch-icon" sizes="180x180" href=".images/favicon-180.png">
-    <link rel="icon" type="image/png" sizes="32x32" href=".images/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href=".images/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16.png">
 
     <meta name="twitter:title" content="golova.dev">
     <meta name="twitter:description" content="See and listen to the beauty of fractals online.">
@@ -88,7 +88,7 @@
       </div>
       </div>
     </div>
-    <div style="width: 100%; height: 100%;">
+    <div style="width: 100%; height: 100%; touch-action: none;">
       <canvas id="placeholder" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 0;width: 100%; height: 100%;"></canvas>
       <canvas id="glcanvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
       <canvas id="lineCanvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
@@ -96,6 +96,5 @@
     <script src="./javascripts/AudioFeeder.js"></script>
     <script src="./javascripts/fractalSoundsUtils.js"></script>
     <script src="./javascripts/fractalSounds.js"></script>
-    <script src="./javascripts/fractalSoundsWorker.js"></script>
   </body>
 </html>

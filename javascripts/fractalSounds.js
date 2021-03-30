@@ -1,7 +1,6 @@
 main();
 
 var zoom;
-var zoomDestination = zoom;
 var camera;
 var cameraFp;
 var resolution;
@@ -15,6 +14,8 @@ var paused;
 var resumed = false;
 var orbit_x, orbit_y;
 var animated;
+var curDrag;
+var prevDrag;
 
 function main() {
   const canvas = document.querySelector('#glcanvas');
@@ -433,14 +434,16 @@ function setupEventHandlers() {
   var juliaDrag = false;
   var takeScreenshot = false;
   var showHelpMenu = false;
-  var curDrag;
-  var prevDrag;
-  var gestureStartRotation;
+  // var gestureStartRotation;
+  var gestureStartZoom;
+  var gesturing = false;
 
   window.addEventListener("gesturestart", function (e) {
     e.preventDefault();
 
+    gesturing = true;
     prevDrag = [e.pageX, e.pageY];
+    gestureStartZoom = zoom;
   });
 
   window.addEventListener("gesturechange", function (e) {
@@ -448,21 +451,15 @@ function setupEventHandlers() {
 
     // rotation = gestureStartRotation + e.rotation;
 
-    applyZoom(programInfo, e.scale - 1.0);
+    setZoom(programInfo, e.scale * gestureStartZoom);
 
     curDrag = [e.pageX, e.pageY];
-    camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
-    camera[1] += (curDrag[1] - prevDrag[1]) / zoom;
-    prevDrag = curDrag;
-
-    drawScene(programInfo);
-    if (!paused) {
-      drawOrbit(programInfo, true);
-    }
+    applyDrag(programInfo);
   })
 
   window.addEventListener("gestureend", function (e) {
     e.preventDefault();
+    gesturing = false;
   });
 
   document.addEventListener('keyup', event => {
@@ -482,9 +479,11 @@ function setupEventHandlers() {
     applyZoom(programInfo, delta);
   }, { passive: false });
 
-  window.addEventListener("mousedown", event => {
+  window.addEventListener("pointerdown", e => {
+    if (gesturing) {
+      return;
+    }
     var rightclick;
-    var e = window.event;
     prevDrag = [e.offsetX, e.offsetY];
       dragging = (e.button == 1 || (e.altKey && e.button == 0));
       if (e.button == 2) {
@@ -519,17 +518,13 @@ function setupEventHandlers() {
       });
   }
 
-  window.addEventListener('mousemove', e => {
+  window.addEventListener('pointermove', e => {
+    if (gesturing) {
+      return;
+    }
     if (dragging === true) {
       curDrag = [e.offsetX, e.offsetY];
-      camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
-      camera[1] += (curDrag[1] - prevDrag[1]) / zoom;
-      prevDrag = curDrag;
-
-      drawScene(programInfo);
-      if (!paused) {
-        drawOrbit(programInfo, true);
-      }
+      applyDrag(programInfo);
     }
     if (leftPressed === true) {
       var coord = ScreenToPt(e.offsetX, e.offsetY);
@@ -540,7 +535,7 @@ function setupEventHandlers() {
     }
   });
 
-  window.addEventListener('mouseup', e => {
+  window.addEventListener('pointerup', e => {
     dragging = false;
     leftPressed = false;
   });
@@ -587,7 +582,7 @@ function setupEventHandlers() {
 
   var shareUrl = document.querySelector('#shareUrl');
   var shareButton = document.querySelector('#share');
-  shareButton.addEventListener('mousedown', function() {
+  shareButton.addEventListener('pointerdown', function() {
     shareUrl.style.height = "20px";
     shareUrl.style.visibility = "visible";
     const url = generateUrl();
@@ -597,7 +592,7 @@ function setupEventHandlers() {
   shareUrl.addEventListener('input', function() {
   });
   var fpsContainer = document.querySelector('#fpsContainer');
-  fpsContainer.addEventListener("mousedown", function(e){
+  fpsContainer.addEventListener("pointerdown", function(e){
       e.stopPropagation();
   });
 }
@@ -724,8 +719,28 @@ function drawOrbit(programInfo, repeat) {
   ctx.stroke();
 }
 
+function applyDrag(programInfo) {
+  camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
+  camera[1] += (curDrag[1] - prevDrag[1]) / zoom;
+  prevDrag = curDrag;
+
+  drawScene(programInfo);
+  if (!paused) {
+    drawOrbit(programInfo, true);
+  }
+}
+
 function applyZoom(programInfo, amount) {
   zoom += amount * (zoom / 20.0);
+
+  drawScene(programInfo);
+  if (!paused) {
+    drawOrbit(programInfo, true);
+  }
+}
+
+function setZoom(programInfo, newZoom) {
+  zoom = newZoom;
 
   drawScene(programInfo);
   if (!paused) {
