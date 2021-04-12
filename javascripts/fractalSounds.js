@@ -38,7 +38,7 @@ function main() {
   lineCanvas.width = resolution[0];
   lineCanvas.height = resolution[1];
 
-  const gl = canvas.getContext('webgl2');
+  const gl = canvas.getContext('webgl');
 
   if (!gl) {
     const text = `
@@ -52,8 +52,8 @@ function main() {
 
   // Vertex shader program
 
-  const vsSource = `#version 300 es
-    in vec4 aVertexPosition;
+  const vsSource = `
+    attribute vec4 aVertexPosition;
     uniform vec2 iResolution;
 
     uniform mat4 uModelViewMatrix;
@@ -67,7 +67,7 @@ function main() {
 
   // Fragment shader program
 
-  const fsSource = `#version 300 es
+  const fsSource = `
   #define FLOAT float
   #define VEC2 vec2
   #define VEC3 vec3
@@ -75,9 +75,9 @@ function main() {
   #define ESCAPE 1000.0
   #define PI 3.141592653
 
-  #define FLAG_DRAW_MSET ((iFlags & 0x01) == 0x01)
-  #define FLAG_DRAW_JSET ((iFlags & 0x02) == 0x02)
-  #define FLAG_USE_COLOR ((iFlags & 0x04) == 0x04)
+  #define FLAG_DRAW_MSET false
+  #define FLAG_DRAW_JSET false
+  #define FLAG_USE_COLOR (iFlags == 0x04)
 
   precision highp float;
 
@@ -89,6 +89,14 @@ function main() {
   uniform int iIters;
   uniform int iFlags;
   uniform int iTime;
+
+  float sinh(float x) {
+    return (exp(x) - exp(-x)) / 2.0;
+  }
+
+  float cosh(float x) {
+    return (exp(x) + exp(-x)) / 2.0;
+  }
 
   #define cx_one VEC2(1.0, 0.0)
   VEC2 cx_mul(VEC2 a, VEC2 b) {
@@ -151,43 +159,53 @@ function main() {
     return z;
   }
 
-  #if 1
-  #define DO_LOOP(name) \
-    for (i = 0; i < iIters; ++i) { \
-      VEC2 ppz = pz; \
-      pz = z; \
-      z = name(z, c); \
-      if (dot(z, z) > ESCAPE) { break; } \
-      sumz.x += dot(z - pz, pz - ppz); \
-      sumz.y += dot(z - pz, z - pz); \
-      sumz.z += dot(z - ppz, z - ppz); \
+  int it = 0;
+
+  VEC3 loop(VEC2 z1, VEC2 c) {
+    const int count = 1200;
+    VEC2 pz = z1;
+    VEC3 sumz = VEC3(0.0, 0.0, 0.0);
+    VEC2 z = z1;
+
+    for (int i = 0; i < count; i++) {
+      VEC2 ppz = pz;
+
+      pz = z;
+      if (iType == 0) {
+        z = mandelbrot(z, c);
+      } else if (iType == 1) {
+        z = burning_ship(z, c);
+      } else if (iType == 2) {
+        z = feather(z, c);
+      } else if (iType == 3) {
+        z = sfx(z, c);
+      } else if (iType == 4) {
+        z = henon(z, c);
+      } else if (iType == 5) {
+        z = duffing(z, c);
+      } else if (iType == 6) {
+        z = ikeda(z, c);
+      } else if (iType == 7) {
+        z = chirikov(z, c);
+      }
+      it++;
+      if (dot(z, z) > ESCAPE) { break; }
+      sumz.x += dot(z - pz, pz - ppz);
+      sumz.y += dot(z - pz, z - pz);
+      sumz.z += dot(z - ppz, z - ppz);
     }
-  #else
-  #define DO_LOOP(name) \
-    for (i = 0; i < iIters; ++i) { \
-      z = name(z, c); \
-      if (dot(z, z) > ESCAPE) { break; } \
-    }
-  #endif
+
+    return sumz;
+  }
 
   vec3 fractal(VEC2 z, VEC2 c) {
-    VEC2 pz = z;
-    VEC3 sumz = VEC3(0.0, 0.0, 0.0);
-    int i;
-    switch (iType) {
-      case 0: DO_LOOP(mandelbrot); break;
-      case 1: DO_LOOP(burning_ship); break;
-      case 2: DO_LOOP(feather); break;
-      case 3: DO_LOOP(sfx); break;
-      case 4: DO_LOOP(henon); break;
-      case 5: DO_LOOP(duffing); break;
-      case 6: DO_LOOP(ikeda); break;
-      case 7: DO_LOOP(chirikov); break;
-    }
 
-    if (i != iIters) {
-      float n1 = sin(float(i) * 0.1) * 0.5 + 0.5;
-      float n2 = cos(float(i) * 0.1) * 0.5 + 0.5;
+    it = 0;
+    VEC3 sumz = loop(z, c);
+
+    if (it != iIters) {
+      float n1 = sin(float(it) * 0.1) * 0.5 + 0.5;
+      float n2 = cos(float(it) * 0.1) * 0.5 + 0.5;
       return vec3(n1, n2, 1.0) * (1.0 - float(FLAG_USE_COLOR)*0.85);
     } else if (FLAG_USE_COLOR) {
       sumz = abs(sumz) / float(iIters);
@@ -201,7 +219,7 @@ function main() {
   float rand(float s) {
     return fract(sin(s*12.9898) * 43758.5453);
   }
-  out vec4 fragColor;
+
   void main() {
   	//Get normalized screen coordinate
   	vec2 screen_pos = gl_FragCoord.xy - (iResolution.xy * 0.5);
@@ -223,7 +241,7 @@ function main() {
     if (FLAG_DRAW_MSET && FLAG_DRAW_JSET) {
       col *= 0.5;
     }
-    fragColor = vec4(clamp(col, 0.0, 1.0), 1.0 / (float(iTime) + 1.0));
+    gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0 / (float(iTime) + 1.0));
   }
   `;
 
