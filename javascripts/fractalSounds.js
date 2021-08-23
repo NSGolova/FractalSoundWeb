@@ -452,32 +452,119 @@ function setupEventHandlers() {
   var juliaDrag = false;
   var takeScreenshot = false;
   var showHelpMenu = false;
-  // var gestureStartRotation;
+  // The two touches that make up a pinch-to-zoom gesture.
+  // Updated every time one of them changes.
+  var gestureTouches;
+  // How zoomed in the image was when the gesture began.
   var gestureStartZoom;
+  // The distance there was between the two touches when the gesture began.
+  var gestureStartDist;
+  // The points on the complex plane each touch started at.
+  // We use this to apply the necessary translations to make the touches
+  // stay as close as possible to their original positions on the image.
+  var gestureStartPoints;
+  // The position the camera was at when the gesture started.
+  var gestureStartCamera;
+  // Whether a gesture is currently running.
   var gesturing = false;
 
-  window.addEventListener("gesturestart", function (e) {
+  function touchDistance(touchA, touchB) {
+    return Math.sqrt(
+      (touchA.pageX - touchB.pageX) ** 2 + (touchA.pageY - touchB.pageY) ** 2,
+    );
+  }
+
+  const canvas = document.querySelector("#lineCanvas");
+
+  // Define these on the canvas so that we don't override events for the controls.
+  canvas.addEventListener("touchstart", function (e) {
     e.preventDefault();
 
-    gesturing = true;
-    prevDrag = [e.pageX, e.pageY];
-    gestureStartZoom = zoom;
+    if (e.targetTouches.length === 2 && !gesturing) {
+      const touchA = e.targetTouches[0];
+      const touchB = e.targetTouches[1];
+
+      gesturing = true;
+      gestureStartZoom = zoom;
+      gestureStartDist = touchDistance(touchA, touchB);
+      gestureStartPoints = [
+        ScreenToPt(touchA.pageX, touchA.pageY),
+        ScreenToPt(touchB.pageX, touchB.pageY),
+      ];
+      gestureStartCamera = camera;
+      gestureTouches = [touchA, touchB];
+    }
   });
 
-  window.addEventListener("gesturechange", function (e) {
+  canvas.addEventListener("touchmove", function (e) {
+    if (!gesturing) {
+      return;
+    }
+
+    let changed = false;
+    for (const touch of e.changedTouches) {
+      if (touch.identifier === gestureTouches[0].identifier) {
+        changed = true;
+        gestureTouches[0] = touch;
+      }
+
+      if (touch.identifier === gestureTouches[1].identifier) {
+        changed = true;
+        gestureTouches[1] = touch;
+      }
+    }
+
+    if (!changed) {
+      return;
+    }
+
     e.preventDefault();
 
-    // rotation = gestureStartRotation + e.rotation;
+    // First, handle zooming.
+    // Calculate the ratio of the distance between the new touch points
+    // to the distance between them when the gesture started.
+    const newDist = touchDistance(...gestureTouches);
+    const scale = newDist / gestureStartDist;
 
-    setZoom(programInfo, e.scale * gestureStartZoom);
+    // Multiply that by the zoom we had when the gesture started to get the new zoom.
+    zoom = scale * gestureStartZoom;
 
-    curDrag = [e.pageX, e.pageY];
-    applyDrag(programInfo);
-  })
+    // Now handle translating.
+    // Figure out the points these touches map to on the fractal.
+    const ptA = ScreenToPt(gestureTouches[0].pageX, gestureTouches[0].pageY);
+    const ptB = ScreenToPt(gestureTouches[1].pageX, gestureTouches[1].pageY);
 
-  window.addEventListener("gestureend", function (e) {
-    e.preventDefault();
-    gesturing = false;
+    // Figure out how fare the points are from where they should be.
+    const xDistA = ptA[0] - gestureStartPoints[0][0];
+    const xDistB = ptB[0] - gestureStartPoints[1][0];
+    const yDistA = ptA[1] - gestureStartPoints[0][1];
+    const yDistB = ptB[1] - gestureStartPoints[1][1];
+
+    // Figure out how far they are from where they should be on average.
+    const xDist = (xDistA + xDistB) / 2;
+    const yDist = (yDistA + yDistB) / 2;
+
+    // Move the camera.
+    camera[0] = gestureStartCamera[0] + xDist;
+    camera[1] = gestureStartCamera[1] + yDist;
+
+    drawScene(programInfo);
+    if (!paused) {
+      drawOrbit(programInfo, true);
+    }
+  });
+
+  canvas.addEventListener("touchend", function (e) {
+    for (const touch of e.changedTouches) {
+      if (
+        touch.identifier === gestureTouches[0].identifier ||
+        touch.identifier === gestureTouches[1].identifier
+      ) {
+        e.preventDefault();
+        gesturing = false;
+        break;
+      }
+    }
   });
 
   document.addEventListener('keyup', event => {
