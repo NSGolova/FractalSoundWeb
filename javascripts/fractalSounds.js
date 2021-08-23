@@ -478,9 +478,9 @@ function setupEventHandlers() {
 
   // Define these on the canvas so that we don't override events for the controls.
   canvas.addEventListener("touchstart", function (e) {
-    e.preventDefault();
-
     if (e.targetTouches.length === 2 && !gesturing) {
+      e.preventDefault();
+
       const touchA = e.targetTouches[0];
       const touchB = e.targetTouches[1];
 
