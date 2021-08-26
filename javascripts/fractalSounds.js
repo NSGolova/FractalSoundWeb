@@ -554,7 +554,7 @@ function setupEventHandlers() {
     }
   });
 
-  canvas.addEventListener("touchend", function (e) {
+  function onTouchEnd(e) {
     for (const touch of e.changedTouches) {
       if (
         touch.identifier === gestureTouches[0].identifier ||
@@ -565,7 +565,10 @@ function setupEventHandlers() {
         break;
       }
     }
-  });
+  }
+
+  canvas.addEventListener("touchend", onTouchEnd);
+  canvas.addEventListener("touchcancel", onTouchEnd);
 
   document.addEventListener('keyup', event => {
     if (event.code === 'Space') {
