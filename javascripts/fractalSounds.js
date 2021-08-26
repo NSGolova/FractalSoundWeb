@@ -2,11 +2,10 @@ main();
 
 var zoom;
 var camera;
-var cameraFp;
+var cameraDest;
 var resolution;
 var flags;
 var time;
-var iterations;
 var julia;
 var type;
 var programInfo;
@@ -24,7 +23,7 @@ function main() {
 
   zoom = 100.;
   camera = [0.0, 0.0];
-  cameraFp = [0, 0];
+  cameraDest = [0.0, 0.0];
   flags = 0;
   time = 0;
   iterations = 1200;
@@ -74,6 +73,7 @@ function main() {
   #define AA_LEVEL 1
   #define ESCAPE 1000.0
   #define PI 3.141592653
+  #define IT_LIMIT 1000000
 
   #define FLAG_DRAW_MSET false
   #define FLAG_DRAW_JSET false
@@ -86,9 +86,10 @@ function main() {
   uniform vec2 iJulia;
   uniform float iZoom;
   uniform int iType;
-  uniform int iIters;
   uniform int iFlags;
   uniform int iTime;
+
+  int itCount = int(2.0 * sqrt(10.0 * iZoom));
 
   float sinh(float x) {
     return (exp(x) - exp(-x)) / 2.0;
@@ -162,12 +163,13 @@ function main() {
   int it = 0;
 
   VEC3 loop(VEC2 z1, VEC2 c) {
-    const int count = 1200;
     VEC2 pz = z1;
     VEC3 sumz = VEC3(0.0, 0.0, 0.0);
     VEC2 z = z1;
 
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < IT_LIMIT; i++) {
+      if (i == itCount) { break; }
+
       VEC2 ppz = pz;
 
       pz = z;
@@ -203,12 +205,12 @@ function main() {
     it = 0;
     VEC3 sumz = loop(z, c);
 
-    if (it != iIters) {
+    if (it != itCount) {
       float n1 = sin(float(it) * 0.1) * 0.5 + 0.5;
       float n2 = cos(float(it) * 0.1) * 0.5 + 0.5;
       return vec3(n1, n2, 1.0) * (1.0 - float(FLAG_USE_COLOR)*0.85);
     } else if (FLAG_USE_COLOR) {
-      sumz = abs(sumz) / float(iIters);
+      sumz = abs(sumz) / float(itCount);
       vec3 n1 = sin(abs(sumz * 5.0)) * 0.45 + 0.5;
       return n1;
     } else {
@@ -263,7 +265,6 @@ function main() {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
       modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
       zoom: gl.getUniformLocation(shaderProgram, "iZoom"),
-      iterations: gl.getUniformLocation(shaderProgram, "iIters"),
       resolution: gl.getUniformLocation(shaderProgram, "iResolution"),
       julia: gl.getUniformLocation(shaderProgram, "iJulia"),
       time: gl.getUniformLocation(shaderProgram, "iTime"),
@@ -392,7 +393,6 @@ function drawScene(programInfo) {
   gl.uniform1i(programInfo.uniformLocations.type, type);
 
     gl.uniform1f(programInfo.uniformLocations.zoom, zoom);
-    gl.uniform1i(programInfo.uniformLocations.iterations, iterations);
     gl.uniform2f(programInfo.uniformLocations.resolution, resolution[0], resolution[1]);
     gl.uniform2f(programInfo.uniformLocations.julia, julia[0], julia[1]);
 
@@ -446,12 +446,8 @@ function loadShader(gl, type, source) {
 
 function setupEventHandlers() {
 
-  var px, py;
   var leftPressed = false;
   var dragging = false;
-  var juliaDrag = false;
-  var takeScreenshot = false;
-  var showHelpMenu = false;
   // The two touches that make up a pinch-to-zoom gesture.
   // Updated every time one of them changes.
   var gestureTouches;
@@ -581,10 +577,24 @@ function setupEventHandlers() {
   window.addEventListener("wheel", e => {
     e.preventDefault();
 
-    const delta = -Math.sign(e.deltaY)
-    cameraFp = [e.offsetX, e.offsetY];
+    const cameraFp = ScreenToPt(e.pageX, e.pageY);
+    const zoomAmount = -Math.sign(e.deltaY);
 
-    applyZoom(programInfo, delta);
+    zoom += zoomAmount * (zoom / 20.0);
+    const cameraFpNew = ScreenToPt(e.pageX, e.pageY);
+    const fpXDelta = cameraFpNew[0] - cameraFp[0];
+    const fpYDelta = cameraFpNew[1] - cameraFp[1];
+
+    cameraDest[0] += fpXDelta;
+    cameraDest[1] += fpYDelta;
+
+    camera[0] = (camera[0] + fpXDelta) * 0.8 + cameraDest[0] * 0.2;
+    camera[1] = (camera[1] + fpYDelta) * 0.8 + cameraDest[1] * 0.2;
+
+    drawScene(programInfo);
+    if (!paused) {
+      drawOrbit(programInfo, true);
+    }
   }, { passive: false });
 
   window.addEventListener("pointerdown", e => {
@@ -830,25 +840,9 @@ function drawOrbit(programInfo, repeat) {
 function applyDrag(programInfo) {
   camera[0] += (curDrag[0] - prevDrag[0]) / zoom;
   camera[1] += (curDrag[1] - prevDrag[1]) / zoom;
+  cameraDest[0] += (curDrag[0] - prevDrag[0]) / zoom;
+  cameraDest[1] += (curDrag[1] - prevDrag[1]) / zoom;
   prevDrag = curDrag;
-
-  drawScene(programInfo);
-  if (!paused) {
-    drawOrbit(programInfo, true);
-  }
-}
-
-function applyZoom(programInfo, amount) {
-  zoom += amount * (zoom / 20.0);
-
-  drawScene(programInfo);
-  if (!paused) {
-    drawOrbit(programInfo, true);
-  }
-}
-
-function setZoom(programInfo, newZoom) {
-  zoom = newZoom;
 
   drawScene(programInfo);
   if (!paused) {
