@@ -1,1 +1,100 @@
-fractalSounds.html
+
+<html>
+  <head>
+    <title>Fractal sounds</title>
+    <link rel="stylesheet" href="./stylesheets/fractalStyle.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+              integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
+              crossorigin="anonymous"></script>
+    <meta property="og:image" content="https://www.golova.dev/experiments/images/preview.png">
+    <meta property="og:title" content="Fractal sound explorer">
+    <meta property="og:type" content="website">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/favicon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16.png">
+
+    <meta name="twitter:title" content="golova.dev">
+    <meta name="twitter:description" content="See and listen to the beauty of fractals online.">
+    <meta name="twitter:site" content="@nsgolova">
+    <meta name="twitter:image" content="https://www.golova.dev/experiments/images/preview.png">
+    <meta name="twitter:image:alt" content="Fractal sound explorer">
+    <meta name="twitter:card" content="summary">
+  </head>
+  <body>
+    <div id="fpsContainer" onclick="">
+      <div id="topUI">
+      <div class="menuTitle">Fractal type</div>
+      <div class="clickable" id="setSetting0" style="color: red;">Mandelbrot Set</div>
+      <div class="clickable" id="setSetting1">Burning Ship</div>
+      <div class="clickable" id="setSetting2">Feather Fractal</div>
+      <div class="clickable" id="setSetting3">SFX Fractal</div>
+      <div class="clickable" id="setSetting4">Henon Map</div>
+      <div class="clickable" id="setSetting5">Duffing Map</div>
+      <div class="clickable" id="setSetting6">Ikeda Map</div>
+      <div class="clickable" id="setSetting7">Chirikov Map</div>
+      <div><label id="volumeLabel">Volume: 30%</label></div>
+      <div><input type="range" id="volume" min="1" max="100" value="30"></div>
+      <div><label id="tuneLabel">Tune: 4000Hz</label></div>
+      <div><input type="range" id="maxFreq" min="2000" max="10000" value="4000" step="100"></div>
+      <div class="toggleButton" title="Prevent sound from fading over time.">
+        <label class="switch">
+          <input type="checkbox" id="sustain" checked>
+          <span class="slider round"></span>
+        </label>
+        <label class="toggleButtonLabel">Sustain</label>
+      </div>
+      <div class="toggleButton" title="Show colors of fractals' inner structure.">
+        <label class="switch">
+          <input type="checkbox" id="colors">
+          <span class="slider round"></span>
+        </label>
+        <label class="toggleButtonLabel">Colors</label>
+      </div>
+      <div class="toggleButton" title="Show animation of sound path.">
+        <label class="switch">
+          <input type="checkbox" id="animations" checked>
+          <span class="slider round"></span>
+        </label>
+        <label class="toggleButtonLabel"><td><nobr>Animated path</nobr></td></label>
+      </div>
+      <div>
+        <p style='font: 12px "Lucida Grande", Helvetica, Arial, sans-serif;'>
+          Controls:
+        <br>Left click - <b>play</b>.
+        <br>Right click or
+        <br>"Space" - <b>stop</b>.
+        <br>Wheel click or
+        <br>"alt"+mouse - <b>drag</b>.
+        <br>Scroll or pinch to <b>zoom</b>.
+      </p>
+      </div>
+      <div>
+      <input id="share" type="button" value="Copy share link">
+    </div>
+    <div>
+      <input id="shareUrl" type="text" value="" style="visibility: hidden; height: 0px; width: 132px;"/>
+    </div>
+    <div id="copiedLabel" style="visibility: hidden; height: 0px; width: 132px;">Copied!</div>
+      <div class="linkContainer">
+        <a href="https://youtu.be/GiAj9WW1OfQ">
+          <img src="./images/youtube.png" width="32" height="32" title="Video explanation">
+        </a>
+        <a href="https://codeparade.itch.io/fractal-sound-explorer">
+          <img src="./images/windows.png" width="32" height="32" title="App for Windows">
+        </a>
+        <a href="https://github.com/radulov/FractalSoundWeb.git">
+          <img src="./images/github.png" width="32" height="32" title="Look at my guts">
+        </a>
+      </div>
+      </div>
+    </div>
+    <div style="width: 100%; height: 100%; touch-action: none;">
+      <canvas id="placeholder" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 0;width: 100%; height: 100%;"></canvas>
+      <canvas id="glcanvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>
+      <canvas id="lineCanvas" width="1200" height="720" style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>
+    </div>
+    <script src="./javascripts/AudioFeeder.js"></script>
+    <script src="./javascripts/fractalSoundsUtils.js"></script>
+    <script src="./javascripts/fractalSounds.js"></script>
+  </body>
+</html>
