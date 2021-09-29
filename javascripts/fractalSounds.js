@@ -37,7 +37,13 @@ function main() {
   lineCanvas.width = resolution[0];
   lineCanvas.height = resolution[1];
 
-  const gl = canvas.getContext('webgl');
+  var gl2Available = false;
+  var gl = canvas.getContext('webgl2');
+  if (gl) {
+    gl2Available = true;
+  } else {
+    gl = canvas.getContext('webgl');
+  }
 
   if (!gl) {
     const text = `
@@ -51,8 +57,15 @@ function main() {
 
   // Vertex shader program
 
-  const vsSource = `
-    attribute vec4 aVertexPosition;
+  const vsSource = `${gl2Available ? '#version 300 es' : ''}
+    #ifdef GL_ES
+      #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+      # else
+        precision mediump float;
+      # endif
+    #endif
+    ${gl2Available ? 'in' : 'attribute'} vec4 aVertexPosition;
     uniform vec2 iResolution;
 
     uniform mat4 uModelViewMatrix;
@@ -66,7 +79,14 @@ function main() {
 
   // Fragment shader program
 
-  const fsSource = `
+  const fsSource = `${gl2Available ? '#version 300 es' : ''}
+  #ifdef GL_ES
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+      precision highp float;
+    # else
+      precision mediump float;
+    # endif
+  #endif
   #define FLOAT float
   #define VEC2 vec2
   #define VEC3 vec3
@@ -79,8 +99,6 @@ function main() {
   #define FLAG_DRAW_JSET false
   #define FLAG_USE_COLOR (iFlags == 0x04)
 
-  precision highp float;
-
   uniform vec2 iResolution;
   uniform vec2 iCam;
   uniform vec2 iJulia;
@@ -89,7 +107,11 @@ function main() {
   uniform int iFlags;
   uniform int iTime;
 
-  int itCount = int(2.0 * sqrt(10.0 * iZoom));
+  int it_count() {
+    return int(2.0 * sqrt(10.0 * iZoom));
+  }
+
+  ${gl2Available ? '' : `
 
   float sinh(float x) {
     return (exp(x) - exp(-x)) / 2.0;
@@ -97,6 +119,8 @@ function main() {
 
   float cosh(float x) {
     return (exp(x) + exp(-x)) / 2.0;
+  }
+  `
   }
 
   #define cx_one VEC2(1.0, 0.0)
@@ -166,9 +190,13 @@ function main() {
     VEC2 pz = z1;
     VEC3 sumz = VEC3(0.0, 0.0, 0.0);
     VEC2 z = z1;
+    int itCount = it_count();
 
+    ${gl2Available ? 'for (int i = 0; i < itCount; i++) {' :
+    `
     for (int i = 0; i < IT_LIMIT; i++) {
       if (i == itCount) { break; }
+    `}
 
       VEC2 ppz = pz;
 
@@ -204,6 +232,7 @@ function main() {
 
     it = 0;
     VEC3 sumz = loop(z, c);
+    int itCount = it_count();
 
     if (it != itCount) {
       float n1 = sin(float(it) * 0.1) * 0.5 + 0.5;
@@ -221,6 +250,8 @@ function main() {
   float rand(float s) {
     return fract(sin(s*12.9898) * 43758.5453);
   }
+
+  ${gl2Available ? 'out vec4 fragColor;' : ''}
 
   void main() {
   	//Get normalized screen coordinate
@@ -243,7 +274,7 @@ function main() {
     if (FLAG_DRAW_MSET && FLAG_DRAW_JSET) {
       col *= 0.5;
     }
-    gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0 / (float(iTime) + 1.0));
+    ${gl2Available ? 'fragColor' : 'gl_FragColor'} = vec4(clamp(col, 0.0, 1.0), 1.0 / (float(iTime) + 1.0));
   }
   `;
 

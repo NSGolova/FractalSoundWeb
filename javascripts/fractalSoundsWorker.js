@@ -125,7 +125,7 @@ class Buffer {
       }
 
       //Cosine interpolation
-      var t = j.toFixed(2) / steps.toFixed(2);
+      var t = j / steps;
       t = 0.5 - 0.5*Math.cos(t * 3.14159);
       var wx = t*dx + (1.0 - t)*dpx;
       var wy = t*dy + (1.0 - t)*dpy;
