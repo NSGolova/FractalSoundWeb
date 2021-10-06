@@ -520,12 +520,32 @@ function setupEventHandlers() {
       ];
       gestureStartCamera = camera;
       gestureTouches = [touchA, touchB];
+    } else if (e.targetTouches.length === 1 && !gesturing) {
+      leftPressed = true;
+      paused = false;
+      if (!resumed) {
+        programInfo.synth.feeder._backend._context.resume();
+      }
+
+      var coord = ScreenToPt(e.pageX, e.pageY);
+      orbit_x = coord[0];
+      orbit_y = coord[1];
+      drawOrbit(programInfo);
+      programInfo.synth.setPoint(coord[0], coord[1]);
+      e.preventDefault();
     }
   });
 
   canvas.addEventListener("touchmove", function (e) {
     if (!gesturing) {
-      return;
+      if (leftPressed === true) {
+        var coord = ScreenToPt(e.pageX, e.pageY);
+        orbit_x = coord[0];
+        orbit_y = coord[1];
+        drawOrbit(programInfo);
+        programInfo.synth.setPoint(coord[0], coord[1]);
+        e.preventDefault();
+      }
     }
 
     let changed = false;
@@ -597,7 +617,7 @@ function setupEventHandlers() {
   canvas.addEventListener("touchend", onTouchEnd);
   canvas.addEventListener("touchcancel", onTouchEnd);
 
-  document.addEventListener('keyup', event => {
+  window.addEventListener('keyup', event => {
     if (event.code === 'Space') {
       paused = true;
       programInfo.synth.stop();
@@ -605,7 +625,7 @@ function setupEventHandlers() {
     }
   })
 
-  window.addEventListener("wheel", e => {
+  canvas.addEventListener("wheel", e => {
     e.preventDefault();
 
     const cameraFp = ScreenToPt(e.pageX, e.pageY);
@@ -628,7 +648,7 @@ function setupEventHandlers() {
     }
   }, { passive: false });
 
-  window.addEventListener("pointerdown", e => {
+  canvas.addEventListener("pointerdown", e => {
     if (gesturing) {
       return;
     }
@@ -657,17 +677,17 @@ function setupEventHandlers() {
   });
 
   // Disable context menu for right click.
-  if (document.addEventListener) {
-      document.addEventListener('contextmenu', function (e) {
+  if (canvas.addEventListener) {
+      canvas.addEventListener('contextmenu', function (e) {
           e.preventDefault();
       }, false);
   } else {
-      document.attachEvent('oncontextmenu', function () {
+      canvas.attachEvent('oncontextmenu', function () {
           window.event.returnValue = false;
       });
   }
 
-  window.addEventListener('pointermove', e => {
+  canvas.addEventListener('pointermove', e => {
     if (gesturing) {
       return;
     }
@@ -684,7 +704,7 @@ function setupEventHandlers() {
     }
   });
 
-  window.addEventListener('pointerup', e => {
+  canvas.addEventListener('pointerup', e => {
     dragging = false;
     leftPressed = false;
   });
@@ -731,19 +751,31 @@ function setupEventHandlers() {
 
   var shareUrl = document.querySelector('#shareUrl');
   var shareButton = document.querySelector('#share');
-  shareButton.addEventListener('pointerdown', function() {
+  function onShare() {
     shareUrl.style.height = "20px";
     shareUrl.style.visibility = "visible";
     const url = generateUrl();
     shareUrl.value = url;
     copyTextToClipboard(shareUrl);
-  });
+  }
+  shareButton.addEventListener('pointerdown', onShare);
+  shareButton.addEventListener('touchstart', onShare);
   shareUrl.addEventListener('input', function() {
   });
-  var fpsContainer = document.querySelector('#fpsContainer');
-  fpsContainer.addEventListener("pointerdown", function(e){
-      e.stopPropagation();
-  });
+
+  var uiContainer = document.querySelector('#uiContainer');
+  var hideUIButton = document.querySelector('#hideUI');
+  function onUIHide() {
+    if (uiContainer.style.display == "none") {
+      uiContainer.style.display = "block"
+      hideUIButton.innerHTML = "Hide UI"
+    } else {
+      uiContainer.style.display = "none"
+      hideUIButton.innerHTML = "Show UI"
+    }
+  }
+  hideUIButton.addEventListener('pointerdown', onUIHide);
+  hideUIButton.addEventListener('touchstart', onUIHide);
 }
 
 var g_setSettingsElements;

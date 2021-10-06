@@ -3,9 +3,9 @@ body {
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
-#fpsContainer {
+#uiContainer {
     position: absolute;
-    top: 10px;
+    top: 56px;
     left: 10px;
     z-index: 3;
     color: gray;
@@ -33,6 +33,26 @@ body {
 #tuneLabel {
   font: 16px "Lucida Grande", Helvetica, Arial, sans-serif;
   color: black;
+}
+
+#logoLabel {
+  font: 30px "Lucida Grande", Helvetica, Arial, sans-serif;
+  color: white;
+  position: absolute;
+  left: 10;
+  top: 6;
+  z-index: 2;
+}
+
+#hideUI {
+  font: 16px "Lucida Grande", Helvetica, Arial, sans-serif;
+  color: white;
+  position: absolute;
+  left: 10;
+  top: 34;
+  z-index: 2;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .clickable {cursor: pointer;}
