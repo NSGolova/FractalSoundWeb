@@ -758,8 +758,11 @@ function setupEventHandlers() {
     shareUrl.value = url;
     copyTextToClipboard(shareUrl);
   }
-  shareButton.addEventListener('pointerdown', onShare);
-  shareButton.addEventListener('touchstart', onShare);
+  if ('onpointerdown' in window) {
+    shareButton.addEventListener('pointerdown', onShare);
+  } else {
+    shareButton.addEventListener('touchstart', onShare);
+  }
   shareUrl.addEventListener('input', function() {
   });
 
@@ -774,8 +777,11 @@ function setupEventHandlers() {
       hideUIButton.innerHTML = "Show UI"
     }
   }
-  hideUIButton.addEventListener('pointerdown', onUIHide);
-  hideUIButton.addEventListener('touchstart', onUIHide);
+  if ('onpointerdown' in window) {
+    hideUIButton.addEventListener('pointerdown', onUIHide);
+  } else {
+    hideUIButton.addEventListener('touchstart', onUIHide);
+  }
 }
 
 var g_setSettingsElements;
